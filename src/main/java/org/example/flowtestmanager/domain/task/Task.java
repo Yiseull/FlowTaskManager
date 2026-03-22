@@ -2,6 +2,7 @@ package org.example.flowtestmanager.domain.task;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.example.flowtestmanager.global.exception.AppException;
@@ -55,6 +56,10 @@ public class Task {
 
 	public void incrementSwitchCount() {
 		switchCount++;
+	}
+
+	public Optional<TaskFreshness> calculateFreshness() {
+		return Optional.ofNullable(TaskFreshness.calculateFreshness(status, lastStartedAt, createdAt, carryOverCount));
 	}
 
 	private void transitionTo(TaskStatus next) {
