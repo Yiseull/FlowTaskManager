@@ -63,6 +63,34 @@ class TaskStatusTransitionTest {
 	}
 
 	@Test
+	@DisplayName("PLANNED task를 취소하면 CANCELLED가 된다")
+	void cancel_fromPlanned_becomesCancelled() {
+		Task task = taskWith(TaskStatus.PLANNED);
+
+		task.cancel();
+
+		assertThat(task.getStatus()).isEqualTo(TaskStatus.CANCELLED);
+	}
+
+	@Test
+	@DisplayName("IN_PROGRESS task를 pause()하면 PLANNED가 된다")
+	void pause_fromInProgress_becomesPlanned() {
+		Task task = taskWith(TaskStatus.IN_PROGRESS);
+
+		task.pause();
+
+		assertThat(task.getStatus()).isEqualTo(TaskStatus.PLANNED);
+	}
+
+	@Test
+	@DisplayName("PLANNED task를 pause()하면 예외가 발생한다")
+	void pause_fromPlanned_throwsException() {
+		Task task = taskWith(TaskStatus.PLANNED);
+
+		assertInvalidTransition(task::pause);
+	}
+
+	@Test
 	@DisplayName("COMPLETED task를 시작하면 예외가 발생한다")
 	void start_fromCompleted_throwsException() {
 		Task task = taskWith(TaskStatus.COMPLETED);

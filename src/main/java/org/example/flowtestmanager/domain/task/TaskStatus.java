@@ -12,7 +12,7 @@ public enum TaskStatus {
     private Set<TaskStatus> allowedTransitions;
 
     static {
-        PLANNED.allowedTransitions = Set.of(IN_PROGRESS);
+        PLANNED.allowedTransitions = Set.of(IN_PROGRESS, CANCELLED);
         IN_PROGRESS.allowedTransitions = Set.of(COMPLETED, BLOCKED);
         BLOCKED.allowedTransitions = Set.of(PLANNED, CANCELLED);
         COMPLETED.allowedTransitions = Set.of();

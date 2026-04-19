@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public class AppException extends RuntimeException {
-	private ErrorCode errorCode;
+	private final ErrorCode errorCode;
 
 	public AppException(final ErrorCode errorCode) {
 		super(errorCode.getMessage());
