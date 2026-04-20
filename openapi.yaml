@@ -1,0 +1,640 @@
+openapi: 3.1.0
+info:
+  title: Flow Task Manager API
+  version: 1.0.0
+  description: 단일 작업 집중을 유도하는 Task 관리 앱. 동시에 1개의 task만 진행 가능.
+
+servers:
+  - url: http://localhost:8080
+    description: 로컬 개발 서버
+
+tags:
+  - name: Task
+  - name: Session
+  - name: Day
+  - name: Settings
+
+paths:
+  /tasks:
+    post:
+      tags: [Task]
+      summary: Task 생성
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            examples:
+              기본 생성:
+                value:
+                  title: 디자인 시스템 정리
+              즉시 시작:
+                value:
+                  title: 긴급 버그 수정
+                  start_immediately: true
+              전환하며 즉시 시작:
+                value:
+                  title: 긴급 버그 수정
+                  start_immediately: true
+                  switch_reason: URGENT
+                  switch_note: 프로덕션 장애
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /tasks/today:
+    get:
+      tags: [Task]
+      summary: 오늘 Task 목록 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodayTasksResponse'
+
+  /tasks/{id}/start:
+    patch:
+      tags: [Task]
+      summary: Task 시작
+      description: |
+        진행 중인 task가 없으면 switch_reason 없이 시작 가능.
+        진행 중인 task가 있으면 switch_reason 필수 (task 전환).
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartTaskRequest'
+            examples:
+              첫 시작:
+                value: {}
+              전환 시작:
+                value:
+                  switch_reason: AI_DELEGATED
+                  switch_note: Claude에게 위임
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartedTaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tasks/{id}/complete:
+    patch:
+      tags: [Task]
+      summary: Task 완료 (IN_PROGRESS → COMPLETED)
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{id}/block:
+    patch:
+      tags: [Task]
+      summary: Task 차단 (IN_PROGRESS → BLOCKED)
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{id}/unblock:
+    patch:
+      tags: [Task]
+      summary: Task 차단 해제 (BLOCKED → PLANNED)
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{id}/cancel:
+    patch:
+      tags: [Task]
+      summary: Task 취소 (PLANNED|BLOCKED → CANCELLED)
+      description: IN_PROGRESS → CANCELLED 직접 불가. block 후 cancel 필요.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/current:
+    get:
+      tags: [Session]
+      summary: 현재 진행 중인 세션 조회
+      description: elapsed_seconds는 서버 기준 경과 초. 앱 재접속 시 타이머 초기화에 사용.
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentSessionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/summary:
+    get:
+      tags: [Session]
+      summary: 세션 요약 조회 (종료된 세션도 조회 가능)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSummaryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /day/end:
+    post:
+      tags: [Day]
+      summary: 하루 종료
+      description: |
+        - IN_PROGRESS task: 세션 종료 + 다음 날짜로 이월 + carry_over_count 증가
+        - PLANNED task: carry_over_pending=true 설정 (다음 날 아침 처리 대기)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoidResponse'
+
+  /day/start:
+    post:
+      tags: [Day]
+      summary: 하루 시작 — carry_over_pending 처리
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DayStartRequest'
+            example:
+              carry_over: ["550e8400-e29b-41d4-a716-446655440000"]
+              dismiss: ["550e8400-e29b-41d4-a716-446655440001"]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoidResponse'
+
+  /day/summary:
+    get:
+      tags: [Day]
+      summary: 오늘 요약 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DaySummaryResponse'
+
+  /settings:
+    get:
+      tags: [Settings]
+      summary: 설정 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+
+    patch:
+      tags: [Settings]
+      summary: 설정 수정
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingsRequest'
+            example:
+              daily_task_limit: 4
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+
+components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            INVALID_REQUEST:
+              value:
+                error:
+                  code: INVALID_REQUEST
+                  message: 잘못된 요청입니다.
+            INVALID_STATUS_TRANSITION:
+              value:
+                error:
+                  code: INVALID_STATUS_TRANSITION
+                  message: 허용되지 않는 상태 전이입니다.
+            DAILY_TASK_LIMIT:
+              value:
+                error:
+                  code: DAILY_TASK_LIMIT
+                  message: 오늘의 작업 한도를 초과했습니다.
+            SWITCH_REASON_REQUIRED:
+              value:
+                error:
+                  code: SWITCH_REASON_REQUIRED
+                  message: 작업 전환 사유가 필요합니다.
+    NotFound:
+      description: 리소스 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            TASK_NOT_FOUND:
+              value:
+                error:
+                  code: TASK_NOT_FOUND
+                  message: 작업을 찾을 수 없습니다.
+            NO_ACTIVE_SESSION:
+              value:
+                error:
+                  code: NO_ACTIVE_SESSION
+                  message: 현재 진행 중인 세션이 없습니다.
+    Conflict:
+      description: 낙관적 락 충돌 — 재시도 필요
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONFLICT
+              message: 동시 요청으로 인한 충돌입니다. 다시 시도해주세요.
+
+  schemas:
+    # ── Request ─────────────────────────────────────────────────────────
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          example: 디자인 시스템 정리
+        description:
+          type: string
+          nullable: true
+        scheduled_date:
+          type: string
+          format: date
+          description: 기본값 today (YYYY-MM-DD)
+          example: '2026-04-19'
+        start_immediately:
+          type: boolean
+          default: false
+          description: true이면 생성 직후 바로 시작
+        switch_reason:
+          $ref: '#/components/schemas/SwitchReason'
+          description: start_immediately=true이고 진행 중인 task가 있을 때 필수
+        switch_note:
+          type: string
+          nullable: true
+
+    StartTaskRequest:
+      type: object
+      properties:
+        switch_reason:
+          $ref: '#/components/schemas/SwitchReason'
+          description: 진행 중인 task가 있을 때 필수
+        switch_note:
+          type: string
+          nullable: true
+
+    DayStartRequest:
+      type: object
+      properties:
+        carry_over:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 이월할 task ID 목록
+        dismiss:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 취소할 task ID 목록
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        daily_task_limit:
+          type: integer
+          minimum: 1
+
+    # ── Response ─────────────────────────────────────────────────────────
+    TaskCreatedResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+            status:
+              $ref: '#/components/schemas/TaskStatus'
+
+    StartedTaskResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            taskId:
+              type: string
+              format: uuid
+            sessionId:
+              type: string
+              format: uuid
+
+    TaskStatusResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              $ref: '#/components/schemas/TaskStatus'
+
+    TodayTasksResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            active:
+              nullable: true
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                carry_over_count:
+                  type: integer
+              description: 현재 IN_PROGRESS task. 없으면 null. 타이머는 GET /sessions/current 별도 호출.
+            planned:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlannedTaskDto'
+            completed:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  completed_at:
+                    type: string
+                    format: date-time
+            blocked:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+            cancelled:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+            carry_over_pending:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlannedTaskDto'
+              description: 어제 PLANNED 중 처리 대기 중인 task
+
+    PlannedTaskDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        carry_over_count:
+          type: integer
+        freshness:
+          $ref: '#/components/schemas/TaskFreshness'
+
+    CurrentSessionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            task_id:
+              type: string
+              format: uuid
+            task_title:
+              type: string
+            started_at:
+              type: string
+              format: date-time
+            elapsed_seconds:
+              type: integer
+              description: 서버 기준 경과 초 — 클라이언트 타이머 초기화에 사용
+
+    SessionSummaryResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            task_id:
+              type: string
+              format: uuid
+            task_title:
+              type: string
+            started_at:
+              type: string
+              format: date-time
+            ended_at:
+              type: string
+              format: date-time
+              nullable: true
+              description: 진행 중이면 null
+            elapsed_seconds:
+              type: integer
+
+    DaySummaryResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            date:
+              type: string
+              format: date
+            completed_count:
+              type: integer
+            switch_count:
+              type: integer
+            focus_minutes:
+              type: integer
+            carry_over_count:
+              type: integer
+
+    SettingsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            daily_task_limit:
+              type: integer
+
+    VoidResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+          example: null
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    # ── Enum ─────────────────────────────────────────────────────────────
+    TaskStatus:
+      type: string
+      enum: [PLANNED, IN_PROGRESS, COMPLETED, BLOCKED, CANCELLED]
+
+    TaskFreshness:
+      type: string
+      nullable: true
+      enum: [NORMAL, WARNING, STALE]
+      description: |
+        PLANNED task에만 포함. IN_PROGRESS는 필드 자체 미포함.
+        - STALE: 3일 이상 미실행 또는 carry_over_count >= 4
+        - WARNING: carry_over_count >= 2
+        - NORMAL: 나머지
+
+    SwitchReason:
+      type: string
+      enum: [URGENT, BLOCKED, REPRIORITIZED, AI_DELEGATED, OTHER]
+      description: |
+        - URGENT: 긴급
+        - BLOCKED: 차단됨
+        - REPRIORITIZED: 우선순위 변경
+        - AI_DELEGATED: AI 위임
+        - OTHER: 기타

@@ -4,7 +4,12 @@
       "Bash(./gradlew test:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\" && cat \"{}\"')"
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\" && cat \"{}\"')",
+      "Bash(docker run *)",
+      "Bash(./gradlew bootRun *)",
+      "Bash(pkill -f \"flowtestmanager\")",
+      "Bash(sed -i '' s/FlowTestManagerApplication/FlowTaskManagerApplication/g src/main/java/org/example/flowtaskmanager/FlowTaskManagerApplication.java src/test/java/org/example/flowtaskmanager/FlowTaskManagerApplicationTests.java)",
+      "Bash(sed -i '' s/FlowTestManagerApplicationTests/FlowTaskManagerApplicationTests/g src/test/java/org/example/flowtaskmanager/FlowTaskManagerApplicationTests.java)"
     ]
   }
 }
