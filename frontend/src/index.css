@@ -1,0 +1,54 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+
+  --sidebar-bg:    #7D9E7D;
+  --sidebar-text:  rgba(255,255,255,0.92);
+  --sidebar-muted: rgba(255,255,255,0.55);
+  --sidebar-sel:   rgba(0,0,0,0.18);
+  --sidebar-hover: rgba(0,0,0,0.10);
+
+  --c-bg:           #F9F9F9;
+  --c-surface:      #FFFFFF;
+  --c-text:         #1D1D1F;
+  --c-muted:        #8A8A8E;
+  --c-border:       #E8E8E8;
+  --c-hover:        #F3F3F3;
+
+  --c-accent:       #4A90D9;
+  --c-accent-hover: #3A7EC4;
+  --c-accent-faint: #EAF3FC;
+  --c-danger:       #E05252;
+  --c-danger-bg:    #FEF0F0;
+  --c-danger-hover: #C94040;
+  --c-warn:         #D4850A;
+  --c-warn-bg:      #FEF6E6;
+  --c-warn-border:  #F5D08A;
+  --c-success:      #3DAA6A;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: #D8E4D8;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 99px; }
+
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes fadeUp  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes slideIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:none; } }
