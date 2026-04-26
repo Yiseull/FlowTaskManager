@@ -12,6 +12,8 @@ import java.util.UUID;
 import org.example.flowtaskmanager.domain.session.Session;
 import org.example.flowtaskmanager.domain.session.SessionEndReason;
 import org.example.flowtaskmanager.domain.session.SessionService;
+import org.example.flowtaskmanager.domain.sessionswitch.SessionSwitch;
+import org.example.flowtaskmanager.domain.sessionswitch.SessionSwitchRepository;
 import org.example.flowtaskmanager.domain.settings.UserSettings;
 import org.example.flowtaskmanager.domain.settings.UserSettingsService;
 import org.example.flowtaskmanager.global.exception.AppException;
@@ -29,14 +31,11 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class TaskServiceTest {
 
-	@Mock
-	TaskRepository taskRepository;
-	@Mock
-	UserSettingsService userSettingsService;
-	@Mock
-	SessionService sessionService;
-	@InjectMocks
-	TaskService taskService;
+	@Mock TaskRepository taskRepository;
+	@Mock UserSettingsService userSettingsService;
+	@Mock SessionService sessionService;
+	@Mock SessionSwitchRepository sessionSwitchRepository;
+	@InjectMocks TaskService taskService;
 
 	private final LocalDate today = LocalDate.now();
 
@@ -83,13 +82,12 @@ class TaskServiceTest {
 				.createdAt(t.getCreatedAt()).build();
 		});
 		given(taskRepository.findByStatus(TaskStatus.IN_PROGRESS)).willReturn(Optional.empty());
-		given(taskRepository.findById(any())).willAnswer(inv -> {
-			// 저장된 task를 다시 찾는 경우 — PLANNED 상태의 task 반환
-			return Optional.of(Task.builder()
+		given(taskRepository.findById(any())).willAnswer(inv ->
+			Optional.of(Task.builder()
 				.id(inv.getArgument(0)).title("작업").status(TaskStatus.PLANNED)
 				.scheduledDate(today).carryOverCount(0).carryOverPending(false)
-				.switchCount(0).createdAt(Instant.now()).build());
-		});
+				.switchCount(0).createdAt(Instant.now()).build())
+		);
 		given(sessionService.createSession(any())).willReturn(mockSession());
 
 		taskService.createTask(new CreateTaskCommand("작업", null, today, true, null, null));
@@ -131,8 +129,11 @@ class TaskServiceTest {
 	void startTask_withActiveTask_withReason_switches() {
 		Task activeTask = inProgressTask();
 		Task nextTask = plannedTask();
+		Session endedSession = mockSession();
 		given(taskRepository.findByStatus(TaskStatus.IN_PROGRESS)).willReturn(Optional.of(activeTask));
 		given(taskRepository.findById(nextTask.getId())).willReturn(Optional.of(nextTask));
+		given(sessionService.endSessionForTask(activeTask.getId(), SessionEndReason.SWITCHED))
+			.willReturn(Optional.of(endedSession));
 		given(sessionService.createSession(any())).willReturn(mockSession());
 
 		taskService.startTask(new StartTaskCommand(nextTask.getId(), SwitchReason.AI_DELEGATED, null));
@@ -140,6 +141,27 @@ class TaskServiceTest {
 		assertThat(activeTask.getStatus()).isEqualTo(TaskStatus.PLANNED);
 		assertThat(nextTask.getStatus()).isEqualTo(TaskStatus.IN_PROGRESS);
 		then(sessionService).should().endSessionForTask(activeTask.getId(), SessionEndReason.SWITCHED);
+	}
+
+	@Test
+	@DisplayName("switch 시 SessionSwitch가 저장된다")
+	void startTask_switch_recordsSessionSwitch() {
+		Task activeTask = inProgressTask();
+		Task nextTask = plannedTask();
+		Session endedSession = mockSession();
+		given(taskRepository.findByStatus(TaskStatus.IN_PROGRESS)).willReturn(Optional.of(activeTask));
+		given(taskRepository.findById(nextTask.getId())).willReturn(Optional.of(nextTask));
+		given(sessionService.endSessionForTask(activeTask.getId(), SessionEndReason.SWITCHED))
+			.willReturn(Optional.of(endedSession));
+		given(sessionService.createSession(any())).willReturn(mockSession());
+
+		taskService.startTask(new StartTaskCommand(nextTask.getId(), SwitchReason.URGENT, "긴급"));
+
+		then(sessionSwitchRepository).should().save(argThat(sw ->
+			sw.getFromTaskId().equals(activeTask.getId()) &&
+			sw.getToTaskId().equals(nextTask.getId()) &&
+			sw.getReason() == SwitchReason.URGENT
+		));
 	}
 
 	@Test

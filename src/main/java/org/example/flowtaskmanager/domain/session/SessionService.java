@@ -32,9 +32,10 @@ public class SessionService {
 	}
 
 	@Transactional
-	public void endSessionForTask(UUID taskId, SessionEndReason reason) {
-		sessionRepository.findFirstByTaskIdAndEndedAtIsNull(taskId)
-			.ifPresent(session -> session.end(reason));
+	public Optional<Session> endSessionForTask(UUID taskId, SessionEndReason reason) {
+		Optional<Session> session = sessionRepository.findFirstByTaskIdAndEndedAtIsNull(taskId);
+		session.ifPresent(s -> s.end(reason));
+		return session;
 	}
 
 	@Transactional(readOnly = true)

@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.example.flowtaskmanager.domain.session.Session;
 import org.example.flowtaskmanager.domain.session.SessionEndReason;
 import org.example.flowtaskmanager.domain.session.SessionService;
+import org.example.flowtaskmanager.domain.sessionswitch.SessionSwitch;
+import org.example.flowtaskmanager.domain.sessionswitch.SessionSwitchRepository;
 import org.example.flowtaskmanager.domain.settings.UserSettings;
 import org.example.flowtaskmanager.domain.settings.UserSettingsService;
 import org.example.flowtaskmanager.global.exception.AppException;
@@ -24,6 +26,7 @@ public class TaskService {
 	private final TaskRepository taskRepository;
 	private final UserSettingsService userSettingsService;
 	private final SessionService sessionService;
+	private final SessionSwitchRepository sessionSwitchRepository;
 
 	@Transactional
 	public Task createTask(CreateTaskCommand cmd) {
@@ -89,15 +92,19 @@ public class TaskService {
 		if (maybeActive.isPresent()) {
 			Task active = maybeActive.get();
 			if (active.getId().equals(taskId)) {
-				// 이미 IN_PROGRESS인 task — 현재 세션을 그대로 반환
 				return sessionService.getCurrentSession()
 					.orElseGet(() -> sessionService.createSession(active));
 			}
 			if (switchReason == null) {
 				throw new AppException(ErrorCode.SWITCH_REASON_REQUIRED);
 			}
-			sessionService.endSessionForTask(active.getId(), SessionEndReason.SWITCHED);
+			Optional<Session> endedSession = sessionService.endSessionForTask(active.getId(), SessionEndReason.SWITCHED);
 			active.pause();
+			endedSession.ifPresent(s ->
+				sessionSwitchRepository.save(
+					SessionSwitch.create(s, active.getId(), taskId, switchReason, switchNote)
+				)
+			);
 		}
 
 		Task task = findTask(taskId);
