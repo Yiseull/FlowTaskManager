@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.example.flowtaskmanager.domain.event.TaskEventService;
+import org.example.flowtaskmanager.domain.event.TaskEventType;
 import org.example.flowtaskmanager.domain.session.Session;
 import org.example.flowtaskmanager.domain.session.SessionEndReason;
 import org.example.flowtaskmanager.domain.session.SessionService;
@@ -27,6 +29,7 @@ public class TaskService {
 	private final UserSettingsService userSettingsService;
 	private final SessionService sessionService;
 	private final SessionSwitchRepository sessionSwitchRepository;
+	private final TaskEventService taskEventService;
 
 	@Transactional
 	public Task createTask(CreateTaskCommand cmd) {
@@ -40,6 +43,7 @@ public class TaskService {
 		}
 
 		Task task = taskRepository.save(Task.create(cmd.title(), cmd.description(), cmd.scheduledDate()));
+		taskEventService.record(task.getId(), TaskEventType.CREATED);
 
 		if (cmd.startImmediately()) {
 			startTaskInternal(task.getId(), cmd.switchReason(), cmd.switchNote());
@@ -57,6 +61,7 @@ public class TaskService {
 		Task task = findTask(taskId);
 		sessionService.endSessionForTask(taskId, SessionEndReason.COMPLETED);
 		task.complete();
+		taskEventService.record(task.getId(), TaskEventType.COMPLETED);
 		return task;
 	}
 
@@ -65,6 +70,7 @@ public class TaskService {
 		Task task = findTask(taskId);
 		sessionService.endSessionForTask(taskId, SessionEndReason.SWITCHED);
 		task.block();
+		taskEventService.record(task.getId(), TaskEventType.BLOCKED);
 		return task;
 	}
 
@@ -72,6 +78,7 @@ public class TaskService {
 	public Task unblockTask(UUID taskId) {
 		Task task = findTask(taskId);
 		task.unblock();
+		taskEventService.record(task.getId(), TaskEventType.UNBLOCKED);
 		return task;
 	}
 
@@ -79,6 +86,7 @@ public class TaskService {
 	public Task cancelTask(UUID taskId) {
 		Task task = findTask(taskId);
 		task.cancel();
+		taskEventService.record(task.getId(), TaskEventType.CANCELLED);
 		return task;
 	}
 
@@ -110,7 +118,9 @@ public class TaskService {
 		Task task = findTask(taskId);
 		task.start();
 		task.incrementSwitchCount();
-		return sessionService.createSession(task);
+		Session session = sessionService.createSession(task);
+		taskEventService.record(task.getId(), session.getId(), TaskEventType.STARTED);
+		return session;
 	}
 
 	private Task findTask(UUID taskId) {

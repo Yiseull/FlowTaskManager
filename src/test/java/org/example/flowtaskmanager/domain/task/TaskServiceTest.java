@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.example.flowtaskmanager.domain.event.TaskEventService;
+import org.example.flowtaskmanager.domain.event.TaskEventType;
 import org.example.flowtaskmanager.domain.session.Session;
 import org.example.flowtaskmanager.domain.session.SessionEndReason;
 import org.example.flowtaskmanager.domain.session.SessionService;
@@ -35,6 +37,7 @@ class TaskServiceTest {
 	@Mock UserSettingsService userSettingsService;
 	@Mock SessionService sessionService;
 	@Mock SessionSwitchRepository sessionSwitchRepository;
+	@Mock TaskEventService taskEventService;
 	@InjectMocks TaskService taskService;
 
 	private final LocalDate today = LocalDate.now();
@@ -255,6 +258,62 @@ class TaskServiceTest {
 		)
 			.isInstanceOf(AppException.class)
 			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.TASK_NOT_FOUND));
+	}
+
+	// ── event recording ─────────────────────────────────────────────
+
+	@Test
+	@DisplayName("createTask 시 CREATED 이벤트가 기록된다")
+	void createTask_recordsCreatedEvent() {
+		given(userSettingsService.findOrCreate()).willReturn(UserSettings.createDefault());
+		given(taskRepository.countByScheduledDateAndStatusIn(eq(today), any())).willReturn(0);
+		given(taskRepository.save(any())).willAnswer(inv -> {
+			Task t = inv.getArgument(0);
+			return Task.builder()
+				.id(UUID.randomUUID()).title(t.getTitle()).status(t.getStatus())
+				.scheduledDate(t.getScheduledDate()).carryOverCount(t.getCarryOverCount())
+				.carryOverPending(t.isCarryOverPending()).switchCount(t.getSwitchCount())
+				.createdAt(t.getCreatedAt()).build();
+		});
+
+		taskService.createTask(new CreateTaskCommand("작업", null, today, false, null, null));
+
+		then(taskEventService).should().record(any(UUID.class), eq(TaskEventType.CREATED));
+	}
+
+	@Test
+	@DisplayName("completeTask 시 COMPLETED 이벤트가 기록된다")
+	void completeTask_recordsCompletedEvent() {
+		Task task = inProgressTask();
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+		taskService.completeTask(task.getId());
+
+		then(taskEventService).should().record(eq(task.getId()), eq(TaskEventType.COMPLETED));
+	}
+
+	@Test
+	@DisplayName("blockTask 시 BLOCKED 이벤트가 기록된다")
+	void blockTask_recordsBlockedEvent() {
+		Task task = inProgressTask();
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+		taskService.blockTask(task.getId());
+
+		then(taskEventService).should().record(eq(task.getId()), eq(TaskEventType.BLOCKED));
+	}
+
+	@Test
+	@DisplayName("startTask 시 STARTED 이벤트가 기록된다")
+	void startTask_recordsStartedEvent() {
+		Task task = plannedTask();
+		given(taskRepository.findByStatus(TaskStatus.IN_PROGRESS)).willReturn(Optional.empty());
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+		given(sessionService.createSession(any())).willReturn(mockSession());
+
+		taskService.startTask(new StartTaskCommand(task.getId(), null, null));
+
+		then(taskEventService).should().record(eq(task.getId()), any(UUID.class), eq(TaskEventType.STARTED));
 	}
 
 	// ── helpers ──────────────────────────────────────────────────────
