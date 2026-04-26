@@ -42,6 +42,9 @@ public enum TaskFreshness {
 
 	private static long calculateDaysSinceActive(final Instant lastStartedAt, final Instant createdAt) {
 		Instant lastActiveAt = lastStartedAt != null ? lastStartedAt : createdAt;
-		return ChronoUnit.DAYS.between(lastActiveAt.atZone(ZoneOffset.UTC).toLocalDate(), LocalDate.now());
+		return ChronoUnit.DAYS.between(
+			lastActiveAt.atZone(ZoneOffset.UTC).toLocalDate(),
+			LocalDate.now(ZoneOffset.UTC)
+		);
 	}
 }
