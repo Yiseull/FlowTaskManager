@@ -1,4 +1,7 @@
 spring:
+  jackson:
+    deserialization:
+      fail-on-null-for-primitives: false
   datasource:
     url: jdbc:postgresql://localhost:5432/flowtaskmanager
     username: postgres
