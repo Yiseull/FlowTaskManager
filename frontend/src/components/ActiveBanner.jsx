@@ -1,9 +1,10 @@
 import Spinner from './Spinner';
 
 export default function ActiveBanner({ task, elapsed, onComplete, onBlock, onSwitch, loading }) {
-  const h = Math.floor(elapsed / 3600);
-  const m = Math.floor((elapsed % 3600) / 60);
-  const s = elapsed % 60;
+  const safeElapsed = Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
+  const h = Math.floor(safeElapsed / 3600);
+  const m = Math.floor((safeElapsed % 3600) / 60);
+  const s = safeElapsed % 60;
   const pad = n => String(n).padStart(2, '0');
   const timeStr = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 

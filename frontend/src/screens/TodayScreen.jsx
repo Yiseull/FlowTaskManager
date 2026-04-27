@@ -17,6 +17,15 @@ async function apiOrMock(fn, mockData) {
   }
 }
 
+function normalizeSession(session) {
+  if (!session) return null;
+  return {
+    ...session,
+    startedAtValue: session.started_at ?? session.startedAt ?? null,
+    elapsedSecondsValue: Number(session.elapsed_seconds ?? session.elapsedSeconds ?? 0),
+  };
+}
+
 export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   const queryClient = useQueryClient();
   const [switchModal, setSwitchModal] = useState({ open: false, targetTask: null });
@@ -36,6 +45,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
     queryFn: () => apiOrMock(() => api.getCurrentSession(), MOCK.session),
     enabled: !!todayData?.active,
     retry: false,
+    select: normalizeSession,
   });
 
   const { data: interrupts = [] } = useQuery({
@@ -46,10 +56,16 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
 
   // Timer
   useEffect(() => {
-    if (session) {
-      const base = session.elapsed_seconds;
-      const startedAt = new Date(session.started_at).getTime();
-      const tick = () => setElapsed(base + Math.floor((Date.now() - startedAt) / 1000));
+    if (session?.startedAtValue) {
+      const base = Number.isFinite(session.elapsedSecondsValue) ? session.elapsedSecondsValue : 0;
+      const startedAt = new Date(session.startedAtValue).getTime();
+      const tick = () => {
+        if (Number.isNaN(startedAt)) {
+          setElapsed(base);
+          return;
+        }
+        setElapsed(base + Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+      };
       tick();
       intervalRef.current = setInterval(tick, 1000);
     } else {
@@ -163,6 +179,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   const blocked = todayData?.blocked || [];
   const pendingInterrupts = Array.isArray(interrupts) ? interrupts : [];
   const sparseLayout = !focusMode && !active && planned.length === 0 && completed.length === 0;
+  const displayElapsed = active ? elapsed : 0;
 
   const dateStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
   const compact = typeof window !== 'undefined' && window.innerWidth < 1160;
@@ -183,7 +200,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   return (
     <>
       <div style={{
-        padding: compact ? '24px 18px 14px' : '28px 38px 20px',
+        padding: compact ? '22px 18px 12px' : '24px 34px 18px',
         display: 'flex',
         alignItems: compact ? 'flex-start' : 'center',
         justifyContent: 'space-between',
@@ -192,8 +209,8 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
         flexShrink: 0,
       }}>
         <div style={{ paddingTop: compact ? 2 : 4 }}>
-          <div style={{ fontSize: compact ? 34 : 38, lineHeight: 1.08, fontWeight: 800, letterSpacing: '-0.05em', marginBottom: 10 }}>오늘</div>
-          <div style={{ fontSize: compact ? 17 : 18, color: 'var(--c-muted)', fontWeight: 600 }}>{dateStr}</div>
+          <div style={{ fontSize: compact ? 28 : 32, lineHeight: 1.04, fontWeight: 780, letterSpacing: '-0.04em', marginBottom: 6 }}>오늘</div>
+          <div style={{ fontSize: compact ? 15 : 16, color: 'var(--c-muted)', fontWeight: 600 }}>{dateStr}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <TopButton
@@ -213,7 +230,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
             {active && (
               <ActiveBanner
                 task={active}
-                elapsed={elapsed}
+                elapsed={displayElapsed}
                 onComplete={() => completeMutation.mutate()}
                 onBlock={() => blockMutation.mutate()}
                 onSwitch={handleSwitchShortcut}
@@ -341,7 +358,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
             </Panel>
 
             <Panel title="집중 분석" action={<span style={{ fontSize: 15, color: 'var(--c-muted)', fontWeight: 600 }}>오늘</span>}>
-              <AnalyticsCard elapsed={elapsed} active={Boolean(active)} />
+              <AnalyticsCard elapsed={displayElapsed} active={Boolean(active)} />
             </Panel>
           </div>
           )}
@@ -445,8 +462,8 @@ function TopButton({ label, icon, onClick, active }) {
     <button
       onClick={onClick}
       style={{
-        height: 58,
-        padding: label ? '0 20px' : '0 18px',
+        height: 54,
+        padding: label ? '0 18px' : '0 16px',
         borderRadius: 18,
         border: active ? '1px solid rgba(137,165,125,0.34)' : '1px solid var(--c-border)',
         background: active ? 'var(--c-accent-faint)' : 'rgba(255,255,255,0.72)',
@@ -454,7 +471,7 @@ function TopButton({ label, icon, onClick, active }) {
         alignItems: 'center',
         gap: 10,
         fontWeight: 700,
-        fontSize: 16,
+        fontSize: 15,
         color: active ? 'var(--c-accent-strong)' : 'var(--c-text)',
         cursor: onClick ? 'pointer' : 'default',
       }}
