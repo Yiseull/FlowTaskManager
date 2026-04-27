@@ -191,9 +191,9 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
         flexWrap: 'wrap',
         flexShrink: 0,
       }}>
-        <div>
-          <div style={{ fontSize: 44, lineHeight: 1.05, fontWeight: 800, letterSpacing: '-0.06em', marginBottom: 8 }}>오늘</div>
-          <div style={{ fontSize: 18, color: 'var(--c-muted)', fontWeight: 600 }}>{dateStr}</div>
+        <div style={{ paddingTop: compact ? 2 : 4 }}>
+          <div style={{ fontSize: compact ? 34 : 38, lineHeight: 1.08, fontWeight: 800, letterSpacing: '-0.05em', marginBottom: 10 }}>오늘</div>
+          <div style={{ fontSize: compact ? 17 : 18, color: 'var(--c-muted)', fontWeight: 600 }}>{dateStr}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <TopButton
