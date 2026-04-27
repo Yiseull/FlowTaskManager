@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import Btn from '../components/Btn';
-import { toast } from '../components/Toast';
-import { api, MOCK } from '../api';
+import { toast } from '../components/toastStore';
+import { api, MOCK, shouldUseMockFallback } from '../api';
 
 async function apiOrMock(fn, mockData) {
   try { return await fn(); }
   catch (e) {
-    if (e instanceof TypeError) return mockData;
+    if (shouldUseMockFallback(e)) return mockData;
     throw e;
   }
 }

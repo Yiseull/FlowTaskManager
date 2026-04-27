@@ -1,6 +1,6 @@
 import Spinner from './Spinner';
 
-export default function ActiveBanner({ task, elapsed, onComplete, onBlock, loading }) {
+export default function ActiveBanner({ task, elapsed, onComplete, onBlock, onSwitch, loading }) {
   const h = Math.floor(elapsed / 3600);
   const m = Math.floor((elapsed % 3600) / 60);
   const s = elapsed % 60;
@@ -9,59 +9,90 @@ export default function ActiveBanner({ task, elapsed, onComplete, onBlock, loadi
 
   return (
     <div style={{
-      margin: '0 0 8px', padding: '14px 20px',
-      background: 'var(--c-accent-faint)', borderRadius: 12,
-      border: '1px solid rgba(74,144,217,0.18)',
-      display: 'flex', alignItems: 'center', gap: 16,
+      padding: '24px',
+      background: 'linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(248,251,246,0.86) 100%)',
+      borderRadius: 30,
+      border: '1px solid var(--c-border)',
+      boxShadow: 'var(--shadow-card)',
+      display: 'flex',
+      flexDirection: typeof window !== 'undefined' && window.innerWidth < 1160 ? 'column' : 'row',
+      alignItems: 'stretch',
+      gap: 18,
       animation: 'slideIn 0.2s ease',
     }}>
-      <div style={{
-        width: 8, height: 8, borderRadius: '50%',
-        background: 'var(--c-accent)', animation: 'pulse 2s infinite', flexShrink: 0,
-      }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 999, background: 'var(--c-accent-faint)', color: 'var(--c-accent-strong)', width: 'fit-content', fontSize: 14, fontWeight: 700 }}>
+          <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--c-success)', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+          집중 중
+        </div>
+        <div style={{ fontSize: 22, lineHeight: 1.32, fontWeight: 800, letterSpacing: '-0.04em' }}>
           {task.title}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--c-accent)', fontWeight: 600, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-          {timeStr} 집중 중
+        <div style={{ fontSize: 60, lineHeight: 1, letterSpacing: '-0.06em', color: 'var(--c-accent)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{timeStr}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 320 }}>
+          <div style={{ height: 8, borderRadius: 999, background: 'rgba(120, 149, 108, 0.14)', overflow: 'hidden' }}>
+            <div style={{ width: '53%', height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, var(--c-accent) 0%, #a7bc9b 100%)' }} />
+          </div>
+          <span style={{ fontSize: 15, color: 'var(--c-muted)' }}>53% 진행</span>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-        <button
-          onClick={onComplete}
-          disabled={loading === 'complete'}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 14px', borderRadius: 8, border: 'none',
-            background: 'var(--c-accent)', color: '#fff',
-            fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          {loading === 'complete' ? (
-            <Spinner size={12} color="#fff" />
-          ) : (
-            <>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l2.8 3L10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              완료
-            </>
-          )}
-        </button>
-        <button
-          onClick={onBlock}
-          disabled={loading === 'block'}
-          style={{
-            padding: '6px 12px', borderRadius: 8,
-            border: '1px solid var(--c-border)', background: '#fff',
-            color: 'var(--c-muted)', fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          {loading === 'block' ? <Spinner size={12} /> : '차단됨'}
-        </button>
+      <div style={{ width: typeof window !== 'undefined' && window.innerWidth < 1160 ? '100%' : 230, display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
+        <ActionButton primary onClick={onComplete} loading={loading === 'complete'} icon="check">완료</ActionButton>
+        <ActionButton onClick={onBlock} loading={loading === 'block'} icon="ban">차단됨</ActionButton>
+        <ActionButton icon="switch" onClick={onSwitch}>다른 작업으로 전환</ActionButton>
       </div>
     </div>
+  );
+}
+
+function ActionButton({ children, onClick, loading, icon, primary, disabled }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        minHeight: 54,
+        padding: '0 18px',
+        borderRadius: 18,
+        border: primary ? 'none' : '1px solid var(--c-border)',
+        background: primary ? 'linear-gradient(180deg, #9eb391 0%, #88a37e 100%)' : 'rgba(255,255,255,0.76)',
+        color: primary ? '#fff' : 'var(--c-text)',
+        fontSize: 15,
+        fontWeight: 700,
+        cursor: disabled || loading ? 'not-allowed' : 'pointer',
+        boxShadow: primary ? '0 16px 30px rgba(137, 165, 125, 0.22)' : 'none',
+      }}
+    >
+      {loading ? <Spinner size={14} color={primary ? '#fff' : 'var(--c-text)'} /> : <ActionIcon icon={icon} primary={primary} />}
+      {children}
+    </button>
+  );
+}
+
+function ActionIcon({ icon, primary }) {
+  const color = primary ? '#fff' : 'currentColor';
+  if (icon === 'check') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8.2 6.3 11.4 13 4.8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (icon === 'ban') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="6" stroke={color} strokeWidth="1.8" />
+        <path d="M4.8 11.2 11.2 4.8" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M6 4.2 2.8 7.5 6 10.8M10 5.2l3.2 3.3-3.2 3.3" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

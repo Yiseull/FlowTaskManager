@@ -3,14 +3,28 @@ async function apiFetch(path, options = {}) {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
-  const body = await res.json().catch(() => ({}));
+  const contentType = res.headers.get('content-type') || '';
+  const body = contentType.includes('application/json')
+    ? await res.json().catch(() => ({}))
+    : null;
   if (!res.ok) {
     const err = new Error(body?.error?.message || 'API Error');
     err.code = body?.error?.code;
     err.status = res.status;
     throw err;
   }
+  if (body == null) {
+    throw new TypeError(`Expected JSON response for ${path}`);
+  }
   return body.data !== undefined ? body.data : body;
+}
+
+export function shouldUseMockFallback(error) {
+  if (error instanceof TypeError) return true;
+  if (!error) return false;
+  if (error.status === 502 || error.status === 503 || error.status === 504) return true;
+  const message = String(error.message || '');
+  return message.includes('Failed to fetch') || message.includes('API Error');
 }
 
 export const api = {
@@ -27,6 +41,10 @@ export const api = {
   getDaySummary:   ()       => apiFetch('/day/summary'),
   getSettings:     ()       => apiFetch('/settings'),
   updateSettings:  (payload) => apiFetch('/settings', { method: 'PATCH', body: JSON.stringify(payload) }),
+  getInterrupts:   (status) => apiFetch(status ? `/interrupts?status=${encodeURIComponent(status)}` : '/interrupts'),
+  createInterrupt: (payload) => apiFetch('/interrupts', { method: 'POST', body: JSON.stringify(payload) }),
+  convertInterrupt: (id, payload = {}) => apiFetch(`/interrupts/${id}/convert`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  dismissInterrupt: (id) => apiFetch(`/interrupts/${id}/dismiss`, { method: 'PATCH', body: JSON.stringify({}) }),
 };
 
 export const MOCK = {
@@ -49,4 +67,22 @@ export const MOCK = {
     started_at: new Date(Date.now() - 1820000).toISOString(), elapsed_seconds: 1820,
   },
   summary: { date: new Date().toISOString().split('T')[0], completed_count: 3, switch_count: 5, focus_minutes: 142, carry_over_count: 2 },
+  interrupts: [
+    {
+      id: 'interrupt-1',
+      title: '운영 배포 상태 확인',
+      priority: 'HIGH',
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 900000).toISOString(),
+      processedAt: null,
+    },
+    {
+      id: 'interrupt-2',
+      title: '짧은 동기화 메시지 답변',
+      priority: 'LOW',
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 240000).toISOString(),
+      processedAt: null,
+    },
+  ],
 };

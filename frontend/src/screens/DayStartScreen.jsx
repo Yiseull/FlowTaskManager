@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, MOCK } from '../api';
+import { api, MOCK, shouldUseMockFallback } from '../api';
 import FreshnessBadge from '../components/FreshnessBadge';
 import Btn from '../components/Btn';
-import { toast } from '../components/Toast';
+import { toast } from '../components/toastStore';
 
 async function apiOrMock(fn, mockData) {
   try { return await fn(); }
   catch (e) {
-    if (e instanceof TypeError) return mockData;
+    if (shouldUseMockFallback(e)) return mockData;
     throw e;
   }
 }

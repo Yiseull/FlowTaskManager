@@ -1,21 +1,3 @@
-import { useState, useCallback } from 'react';
-
-let _addToast = null;
-
-export function useToasts() {
-  const [toasts, setToasts] = useState([]);
-  _addToast = useCallback((msg, type = 'info') => {
-    const id = Date.now();
-    setToasts(t => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3200);
-  }, []);
-  return toasts;
-}
-
-export function toast(msg, type = 'info') {
-  _addToast?.(msg, type);
-}
-
 export function ToastContainer({ toasts }) {
   return (
     <div style={{

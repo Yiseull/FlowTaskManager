@@ -10,6 +10,7 @@ export default defineConfig({
       '/sessions': 'http://localhost:8080',
       '/day': 'http://localhost:8080',
       '/settings': 'http://localhost:8080',
+      '/interrupts': 'http://localhost:8080',
     },
   },
 })
