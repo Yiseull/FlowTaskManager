@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.example.flowtaskmanager.domain.event.TaskEventService;
+import org.example.flowtaskmanager.domain.event.TaskEventType;
 import org.example.flowtaskmanager.domain.session.Session;
 import org.example.flowtaskmanager.domain.session.SessionEndReason;
 import org.example.flowtaskmanager.domain.session.SessionRepository;
@@ -28,6 +30,7 @@ public class DayService {
 	private final TaskRepository taskRepository;
 	private final SessionRepository sessionRepository;
 	private final SessionService sessionService;
+	private final TaskEventService taskEventService;
 
 	@Transactional
 	public void processDayEnd(LocalDate date) {
@@ -37,6 +40,7 @@ public class DayService {
 				case IN_PROGRESS -> {
 					sessionService.endSessionForTask(task.getId(), SessionEndReason.DAY_END);
 					task.carryOver();
+					taskEventService.record(task.getId(), TaskEventType.CARRIED_OVER);
 				}
 				case PLANNED -> task.setCarryOverPending(true);
 				default -> { /* COMPLETED, BLOCKED, CANCELLED — 변경 없음 */ }
@@ -53,9 +57,11 @@ public class DayService {
 		for (Task task : pendingTasks) {
 			if (carryOverSet.contains(task.getId())) {
 				task.carryOver();
+				taskEventService.record(task.getId(), TaskEventType.CARRIED_OVER);
 			} else if (dismissSet.contains(task.getId())) {
 				task.setCarryOverPending(false);
 				task.cancel();
+				taskEventService.record(task.getId(), TaskEventType.CANCELLED);
 			}
 		}
 	}

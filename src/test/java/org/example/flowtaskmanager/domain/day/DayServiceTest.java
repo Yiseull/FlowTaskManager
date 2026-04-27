@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.example.flowtaskmanager.domain.event.TaskEventService;
+import org.example.flowtaskmanager.domain.event.TaskEventType;
 import org.example.flowtaskmanager.domain.session.SessionEndReason;
 import org.example.flowtaskmanager.domain.session.SessionRepository;
 import org.example.flowtaskmanager.domain.session.SessionService;
@@ -30,6 +32,8 @@ class DayServiceTest {
 	SessionRepository sessionRepository;
 	@Mock
 	SessionService sessionService;
+	@Mock
+	TaskEventService taskEventService;
 	@InjectMocks
 	DayService dayService;
 
@@ -50,6 +54,7 @@ class DayServiceTest {
 		assertThat(task.getScheduledDate()).isEqualTo(originalDate.plusDays(1));
 		assertThat(task.getCarryOverCount()).isEqualTo(1);
 		then(sessionService).should().endSessionForTask(task.getId(), SessionEndReason.DAY_END);
+		then(taskEventService).should().record(task.getId(), TaskEventType.CARRIED_OVER);
 	}
 
 	@Test
@@ -81,13 +86,13 @@ class DayServiceTest {
 	@DisplayName("Day Start 시 carryOver 선택한 task는 날짜가 +1되고 carryOverCount가 증가한다")
 	void processDayStart_carryOver_movesDateAndIncrements() {
 		Task task = pendingTask();
-		LocalDate originalDate = task.getScheduledDate();
 		given(taskRepository.findByCarryOverPendingTrue()).willReturn(List.of(task));
 
 		dayService.processDayStart(List.of(task.getId()), List.of());
 
 		assertThat(task.isCarryOverPending()).isFalse();
 		assertThat(task.getCarryOverCount()).isEqualTo(1);
+		then(taskEventService).should().record(task.getId(), TaskEventType.CARRIED_OVER);
 	}
 
 	@Test
@@ -100,6 +105,7 @@ class DayServiceTest {
 
 		assertThat(task.getStatus()).isEqualTo(TaskStatus.CANCELLED);
 		assertThat(task.isCarryOverPending()).isFalse();
+		then(taskEventService).should().record(task.getId(), TaskEventType.CANCELLED);
 	}
 
 	// ── helpers ──────────────────────────────────────────────────────

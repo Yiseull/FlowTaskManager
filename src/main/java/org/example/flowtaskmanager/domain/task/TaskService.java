@@ -42,7 +42,12 @@ public class TaskService {
 			throw new AppException(ErrorCode.DAILY_TASK_LIMIT);
 		}
 
-		Task task = taskRepository.save(Task.create(cmd.title(), cmd.description(), cmd.scheduledDate()));
+		Task task = taskRepository.save(Task.create(
+			cmd.title(),
+			cmd.description(),
+			cmd.scheduledDate(),
+			cmd.convertedFromInterruptId()
+		));
 		taskEventService.record(task.getId(), TaskEventType.CREATED);
 
 		if (cmd.startImmediately()) {
@@ -108,11 +113,12 @@ public class TaskService {
 			}
 			Optional<Session> endedSession = sessionService.endSessionForTask(active.getId(), SessionEndReason.SWITCHED);
 			active.pause();
-			endedSession.ifPresent(s ->
+			endedSession.ifPresent(s -> {
 				sessionSwitchRepository.save(
 					SessionSwitch.create(s, active.getId(), taskId, switchReason, switchNote)
-				)
-			);
+				);
+				taskEventService.record(active.getId(), s.getId(), TaskEventType.SWITCHED);
+			});
 		}
 
 		Task task = findTask(taskId);

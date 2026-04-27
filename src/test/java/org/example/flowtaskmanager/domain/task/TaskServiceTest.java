@@ -168,6 +168,23 @@ class TaskServiceTest {
 	}
 
 	@Test
+	@DisplayName("switch 시 기존 task에 SWITCHED 이벤트가 기록된다")
+	void startTask_switch_recordsSwitchedEvent() {
+		Task activeTask = inProgressTask();
+		Task nextTask = plannedTask();
+		Session endedSession = mockSession();
+		given(taskRepository.findByStatus(TaskStatus.IN_PROGRESS)).willReturn(Optional.of(activeTask));
+		given(taskRepository.findById(nextTask.getId())).willReturn(Optional.of(nextTask));
+		given(sessionService.endSessionForTask(activeTask.getId(), SessionEndReason.SWITCHED))
+			.willReturn(Optional.of(endedSession));
+		given(sessionService.createSession(any())).willReturn(mockSession());
+
+		taskService.startTask(new StartTaskCommand(nextTask.getId(), SwitchReason.URGENT, "긴급"));
+
+		then(taskEventService).should().record(eq(activeTask.getId()), eq(endedSession.getId()), eq(TaskEventType.SWITCHED));
+	}
+
+	@Test
 	@DisplayName("이미 IN_PROGRESS인 task를 다시 start하면 기존 세션을 반환한다")
 	void startTask_sameActiveTask_returnsCurrentSession() {
 		Task task = inProgressTask();
