@@ -128,6 +128,14 @@ public class Task {
 		this.carryOverPending = carryOverPending;
 	}
 
+	public void reschedule(LocalDate scheduledDate) {
+		if (this.status != TaskStatus.PLANNED) {
+			throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
+		}
+		this.scheduledDate = scheduledDate;
+		this.carryOverPending = false;
+	}
+
 	public void incrementSwitchCount() {
 		switchCount++;
 	}

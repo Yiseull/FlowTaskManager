@@ -263,6 +263,32 @@ class TaskServiceTest {
 		assertThat(task.getStatus()).isEqualTo(TaskStatus.CANCELLED);
 	}
 
+	// ── rescheduleTask ───────────────────────────────────────────────
+
+	@Test
+	@DisplayName("PLANNED task는 지정 날짜로 다시 배치할 수 있다")
+	void rescheduleTask_plannedTask_updatesScheduledDate() {
+		Task task = plannedTask();
+		LocalDate tomorrow = today.plusDays(1);
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+		Task result = taskService.rescheduleTask(task.getId(), tomorrow);
+
+		assertThat(result.getScheduledDate()).isEqualTo(tomorrow);
+		assertThat(result.isCarryOverPending()).isFalse();
+	}
+
+	@Test
+	@DisplayName("PLANNED가 아닌 task는 다시 배치할 수 없다")
+	void rescheduleTask_nonPlannedTask_throwsException() {
+		Task task = inProgressTask();
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+		assertThatThrownBy(() -> taskService.rescheduleTask(task.getId(), today.plusDays(1)))
+			.isInstanceOf(AppException.class)
+			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.INVALID_STATUS_TRANSITION));
+	}
+
 	@Test
 	@DisplayName("존재하지 않는 task를 start하면 TASK_NOT_FOUND 예외가 발생한다")
 	void startTask_notFound_throwsException() {

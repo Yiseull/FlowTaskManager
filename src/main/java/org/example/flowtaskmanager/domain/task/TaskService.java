@@ -95,6 +95,13 @@ public class TaskService {
 		return task;
 	}
 
+	@Transactional
+	public Task rescheduleTask(UUID taskId, LocalDate scheduledDate) {
+		Task task = findTask(taskId);
+		task.reschedule(scheduledDate);
+		return task;
+	}
+
 	@Transactional(readOnly = true)
 	public List<Task> getTodayTasks(LocalDate date) {
 		return taskRepository.findByScheduledDate(date);

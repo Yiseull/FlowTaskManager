@@ -174,6 +174,34 @@ class TaskControllerTest {
 		assertThat(response.data().status()).isEqualTo("CANCELLED");
 	}
 
+	// ── PATCH /tasks/:id/schedule ────────────────────────────────────
+
+	@Test
+	@DisplayName("PATCH /tasks/:id/schedule — 정상 재배치 시 새 scheduledDate를 반환한다")
+	void rescheduleTask_success_returnsScheduledDate() {
+		LocalDate tomorrow = LocalDate.now().plusDays(1);
+		Task task = Task.builder()
+			.id(UUID.randomUUID()).title("미룰 작업").status(TaskStatus.PLANNED)
+			.scheduledDate(tomorrow).carryOverCount(2).carryOverPending(false)
+			.switchCount(0).createdAt(Instant.now()).build();
+		given(taskService.rescheduleTask(eq(task.getId()), eq(tomorrow))).willReturn(task);
+
+		ApiResponse<TaskController.TaskScheduleResponse> response =
+			taskController.rescheduleTask(task.getId(), new RescheduleTaskRequest(tomorrow));
+
+		assertThat(response.data().status()).isEqualTo("PLANNED");
+		assertThat(response.data().scheduledDate()).isEqualTo(tomorrow);
+	}
+
+	@Test
+	@DisplayName("PATCH /tasks/:id/schedule — 날짜가 없으면 INVALID_REQUEST 예외가 발생한다")
+	void rescheduleTask_missingScheduledDate_throwsException() {
+		assertThatThrownBy(() ->
+			taskController.rescheduleTask(UUID.randomUUID(), new RescheduleTaskRequest(null))
+		).isInstanceOf(AppException.class)
+			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
+	}
+
 	// ── helpers ──────────────────────────────────────────────────────
 
 	private Task stubPlannedTask(String title) {

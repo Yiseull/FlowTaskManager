@@ -11,6 +11,13 @@ async function apiOrMock(fn, mockData) {
   }
 }
 
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function StaleModal({ tasks, onResolved }) {
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(null);
@@ -25,6 +32,10 @@ export default function StaleModal({ tasks, onResolved }) {
         await apiOrMock(() => api.startTask(task.id), {});
         toast('태스크를 시작했어요', 'success');
       } else if (action === 'postpone') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const scheduledDate = formatLocalDate(tomorrow);
+        await apiOrMock(() => api.rescheduleTask(task.id, { scheduledDate }), {});
         toast('내일로 미뤘어요');
       } else if (action === 'delete') {
         await apiOrMock(() => api.cancelTask(task.id), {});

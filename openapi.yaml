@@ -170,6 +170,34 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /tasks/{id}/schedule:
+    patch:
+      tags: [Task]
+      summary: Task 일정 변경 (PLANNED만 가능)
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescheduleTaskRequest'
+            examples:
+              내일로 미루기:
+                value:
+                  scheduledDate: 2026-04-28
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskScheduleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /sessions/current:
     get:
       tags: [Session]
@@ -492,6 +520,14 @@ components:
           type: string
           nullable: true
 
+    RescheduleTaskRequest:
+      type: object
+      required: [scheduledDate]
+      properties:
+        scheduledDate:
+          type: string
+          format: date
+
     DayStartRequest:
       type: object
       properties:
@@ -572,6 +608,21 @@ components:
               format: uuid
             status:
               $ref: '#/components/schemas/TaskStatus'
+
+    TaskScheduleResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              $ref: '#/components/schemas/TaskStatus'
+            scheduledDate:
+              type: string
+              format: date
 
     TodayTasksResponse:
       type: object

@@ -38,8 +38,8 @@ export default function App() {
     ...(todayData?.carry_over_pending || []),
   ].filter(t => t.freshness === 'STALE');
 
-  const effectiveScreen = screen === 'today' && (todayData?.carry_over_pending?.length ?? 0) > 0 ? 'day-start' : screen;
-  const showStale = staleQueue.length > 0 && !staleResolved && effectiveScreen === 'today';
+  const showStale = staleQueue.length > 0 && !staleResolved;
+  const effectiveScreen = screen === 'today' && !showStale && (todayData?.carry_over_pending?.length ?? 0) > 0 ? 'day-start' : screen;
 
   const endDayMutation = useMutation({
     mutationFn: async () => {

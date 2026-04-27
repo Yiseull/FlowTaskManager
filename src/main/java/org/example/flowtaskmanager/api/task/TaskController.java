@@ -90,6 +90,18 @@ public class TaskController {
 		return ApiResponse.of(new TaskStatusResponse(task.getId(), task.getStatus().name()));
 	}
 
+	@PatchMapping("/{id}/schedule")
+	public ApiResponse<TaskScheduleResponse> rescheduleTask(
+		@PathVariable UUID id,
+		@RequestBody RescheduleTaskRequest request
+	) {
+		if (request == null || request.scheduledDate() == null) {
+			throw new AppException(ErrorCode.INVALID_REQUEST);
+		}
+		Task task = taskService.rescheduleTask(id, request.scheduledDate());
+		return ApiResponse.of(new TaskScheduleResponse(task.getId(), task.getStatus().name(), task.getScheduledDate()));
+	}
+
 	private TodayTasksResponse buildTodayResponse(List<Task> tasks) {
 		TodayTasksResponse.ActiveTaskDto active = null;
 		List<TodayTasksResponse.PlannedTaskDto> planned = new java.util.ArrayList<>();
@@ -124,4 +136,5 @@ public class TaskController {
 	public record TaskCreatedResponse(UUID id, String title, String status) {}
 	public record StartedTaskResponse(UUID taskId, UUID sessionId) {}
 	public record TaskStatusResponse(UUID id, String status) {}
+	public record TaskScheduleResponse(UUID id, String status, LocalDate scheduledDate) {}
 }
