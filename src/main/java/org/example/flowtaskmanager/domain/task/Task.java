@@ -59,6 +59,9 @@ public class Task {
 	@Column(name = "switch_count", nullable = false)
 	private int switchCount;
 
+	@Column(name = "converted_from_interrupt_id")
+	private UUID convertedFromInterruptId;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -71,7 +74,7 @@ public class Task {
 	@Version
 	private Long version;
 
-	public static Task create(String title, String description, LocalDate scheduledDate) {
+	public static Task create(String title, String description, LocalDate scheduledDate, UUID convertedFromInterruptId) {
 		return Task.builder()
 			.title(title)
 			.description(description)
@@ -80,6 +83,7 @@ public class Task {
 			.carryOverCount(0)
 			.carryOverPending(false)
 			.switchCount(0)
+			.convertedFromInterruptId(convertedFromInterruptId)
 			.createdAt(Instant.now())
 			.build();
 	}
