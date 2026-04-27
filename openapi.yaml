@@ -13,6 +13,7 @@ tags:
   - name: Session
   - name: Day
   - name: Settings
+  - name: Interrupt
 
 paths:
   /tasks:
@@ -282,6 +283,101 @@ paths:
               schema:
                 $ref: '#/components/schemas/SettingsResponse'
 
+  /interrupts:
+    post:
+      tags: [Interrupt]
+      summary: Interrupt 생성
+      description: 활성 세션에 연결된 interrupt를 생성한다. 활성 세션이 없으면 실패한다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInterruptRequest'
+            examples:
+              기본 생성:
+                value:
+                  title: 긴급 문의 대응
+              우선순위 지정:
+                value:
+                  title: 배포 장애 확인
+                  priority: HIGH
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterruptResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    get:
+      tags: [Interrupt]
+      summary: Interrupt 목록 조회
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/InterruptStatus'
+          description: 지정 시 해당 상태만 조회
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterruptListResponse'
+
+  /interrupts/{id}/convert:
+    patch:
+      tags: [Interrupt]
+      summary: Interrupt를 Task로 전환
+      description: |
+        PENDING interrupt를 새 task로 변환한다.
+        start_immediately=true이면 INTERRUPTED 사유로 즉시 시작한다.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertInterruptRequest'
+            example:
+              start_immediately: true
+      responses:
+        '200':
+          description: 전환 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertInterruptResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /interrupts/{id}/dismiss:
+    patch:
+      tags: [Interrupt]
+      summary: Interrupt 무시 처리
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 처리 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterruptResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   parameters:
     TaskId:
@@ -320,6 +416,11 @@ components:
                 error:
                   code: SWITCH_REASON_REQUIRED
                   message: 작업 전환 사유가 필요합니다.
+            INTERRUPT_ALREADY_PROCESSED:
+              value:
+                error:
+                  code: INTERRUPT_ALREADY_PROCESSED
+                  message: 이미 처리된 인터럽트입니다.
     NotFound:
       description: 리소스 없음
       content:
@@ -337,6 +438,11 @@ components:
                 error:
                   code: NO_ACTIVE_SESSION
                   message: 현재 진행 중인 세션이 없습니다.
+            INTERRUPT_NOT_FOUND:
+              value:
+                error:
+                  code: INTERRUPT_NOT_FOUND
+                  message: 인터럽트를 찾을 수 없습니다.
     Conflict:
       description: 낙관적 락 충돌 — 재시도 필요
       content:
@@ -408,6 +514,24 @@ components:
         daily_task_limit:
           type: integer
           minimum: 1
+
+    CreateInterruptRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          example: 긴급 문의 대응
+        priority:
+          $ref: '#/components/schemas/InterruptPriority'
+
+    ConvertInterruptRequest:
+      type: object
+      properties:
+        start_immediately:
+          type: boolean
+          default: false
+          description: true이면 변환 후 즉시 시작
 
     # ── Response ─────────────────────────────────────────────────────────
     TaskCreatedResponse:
@@ -603,6 +727,55 @@ components:
           nullable: true
           example: null
 
+    InterruptResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/InterruptDto'
+
+    InterruptListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InterruptDto'
+
+    ConvertInterruptResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            interruptId:
+              type: string
+              format: uuid
+            taskId:
+              type: string
+              format: uuid
+            taskStatus:
+              $ref: '#/components/schemas/TaskStatus'
+
+    InterruptDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        priority:
+          $ref: '#/components/schemas/InterruptPriority'
+        status:
+          $ref: '#/components/schemas/InterruptStatus'
+        createdAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+
     ErrorResponse:
       type: object
       properties:
@@ -631,10 +804,19 @@ components:
 
     SwitchReason:
       type: string
-      enum: [URGENT, BLOCKED, REPRIORITIZED, AI_DELEGATED, OTHER]
+      enum: [INTERRUPTED, URGENT, BLOCKED, REPRIORITIZED, AI_DELEGATED, OTHER]
       description: |
+        - INTERRUPTED: 인터럽트 처리
         - URGENT: 긴급
         - BLOCKED: 차단됨
         - REPRIORITIZED: 우선순위 변경
         - AI_DELEGATED: AI 위임
         - OTHER: 기타
+
+    InterruptPriority:
+      type: string
+      enum: [HIGH, MEDIUM, LOW]
+
+    InterruptStatus:
+      type: string
+      enum: [PENDING, CONVERTED_TO_TASK, DISMISSED]
