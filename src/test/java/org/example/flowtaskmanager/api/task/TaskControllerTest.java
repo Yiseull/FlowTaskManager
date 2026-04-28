@@ -98,6 +98,23 @@ class TaskControllerTest {
 		assertThat(response.data().planned()).isEmpty();
 	}
 
+	// ── GET /tasks/someday ───────────────────────────────────────────
+
+	@Test
+	@DisplayName("GET /tasks/someday — 날짜 없는 PLANNED/BLOCKED task를 tasks 목록으로 반환한다")
+	void getSomedayTasks_returnsTasks() {
+		Task planned = stubSomedayTask("언젠가 정리", TaskStatus.PLANNED);
+		Task blocked = stubSomedayTask("대기 중인 작업", TaskStatus.BLOCKED);
+		given(taskService.getSomedayTasks()).willReturn(List.of(planned, blocked));
+
+		ApiResponse<SomedayTasksResponse> response = taskController.getSomedayTasks();
+
+		assertThat(response.data().tasks()).hasSize(2);
+		assertThat(response.data().tasks().get(0).title()).isEqualTo("언젠가 정리");
+		assertThat(response.data().tasks().get(0).status()).isEqualTo("PLANNED");
+		assertThat(response.data().tasks().get(1).status()).isEqualTo("BLOCKED");
+	}
+
 	// ── PATCH /tasks/:id/start ───────────────────────────────────────
 
 	@Test
@@ -208,6 +225,13 @@ class TaskControllerTest {
 		return Task.builder()
 			.id(UUID.randomUUID()).title(title).status(TaskStatus.PLANNED)
 			.scheduledDate(LocalDate.now()).carryOverCount(0).carryOverPending(false)
+			.switchCount(0).createdAt(Instant.now()).build();
+	}
+
+	private Task stubSomedayTask(String title, TaskStatus status) {
+		return Task.builder()
+			.id(UUID.randomUUID()).title(title).status(status)
+			.scheduledDate(null).carryOverCount(0).carryOverPending(false)
 			.switchCount(0).createdAt(Instant.now()).build();
 	}
 

@@ -7,6 +7,7 @@ import DayStartScreen from './screens/DayStartScreen';
 import DayEndScreen from './screens/DayEndScreen';
 import CompletedScreen from './screens/CompletedScreen';
 import UpcomingScreen from './screens/UpcomingScreen';
+import SomedayScreen from './screens/SomedayScreen';
 import StaleModal from './modals/StaleModal';
 import SettingsModal from './modals/SettingsModal';
 import { ToastContainer } from './components/Toast';
@@ -62,9 +63,9 @@ export default function App() {
   const compact = winW < 980;
 
   function handleNav(nextNav) {
-    if (nextNav === 'today' || nextNav === 'upcoming' || nextNav === 'logbook') {
+    if (nextNav === 'today' || nextNav === 'upcoming' || nextNav === 'anytime' || nextNav === 'logbook') {
       setActiveNav(nextNav);
-      setScreen(nextNav === 'logbook' ? 'completed' : nextNav);
+      setScreen(nextNav === 'logbook' ? 'completed' : nextNav === 'anytime' ? 'someday' : nextNav);
       return;
     }
     if (nextNav !== 'today') {
@@ -148,6 +149,8 @@ export default function App() {
                 setScreen('today');
               }}
             />
+          ) : effectiveScreen === 'someday' ? (
+            <SomedayScreen />
           ) : (
             <TodayScreen onDayEnd={() => endDayMutation.mutate()} onOpenSettings={() => setSettingsOpen(true)} />
           )}

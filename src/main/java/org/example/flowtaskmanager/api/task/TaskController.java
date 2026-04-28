@@ -56,6 +56,20 @@ public class TaskController {
 		return ApiResponse.of(buildTodayResponse(tasks));
 	}
 
+	@GetMapping("/someday")
+	public ApiResponse<SomedayTasksResponse> getSomedayTasks() {
+		List<SomedayTasksResponse.TaskDto> tasks = taskService.getSomedayTasks().stream()
+			.map(t -> new SomedayTasksResponse.TaskDto(
+				t.getId(),
+				t.getTitle(),
+				t.getStatus().name(),
+				t.getCarryOverCount(),
+				t.calculateFreshness().orElse(null)
+			))
+			.toList();
+		return ApiResponse.of(new SomedayTasksResponse(tasks));
+	}
+
 	@PatchMapping("/{id}/start")
 	public ApiResponse<StartedTaskResponse> startTask(
 		@PathVariable UUID id,

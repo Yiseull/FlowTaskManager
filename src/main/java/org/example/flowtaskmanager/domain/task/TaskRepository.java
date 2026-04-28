@@ -13,6 +13,8 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
 	List<Task> findByScheduledDate(LocalDate date);
 
+	List<Task> findByScheduledDateIsNullAndStatusIn(List<TaskStatus> statuses);
+
 	int countByScheduledDateAndStatusIn(LocalDate date, List<TaskStatus> statuses);
 
 	List<Task> findByCarryOverPendingTrue();

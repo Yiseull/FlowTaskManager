@@ -27,8 +27,13 @@ export function shouldUseMockFallback(error) {
   return message.includes('Failed to fetch') || message.includes('API Error');
 }
 
+export function shouldUseSomedayMockFallback(error) {
+  return shouldUseMockFallback(error) || error?.status === 404;
+}
+
 export const api = {
   getToday:        ()       => apiFetch('/tasks/today'),
+  getSomeday:      ()       => apiFetch('/tasks/someday'),
   createTask:      (payload) => apiFetch('/tasks', { method: 'POST', body: JSON.stringify(payload) }),
   startTask:       (id, payload = {}) => apiFetch(`/tasks/${id}/start`, { method: 'PATCH', body: JSON.stringify(payload) }),
   completeTask:    (id)     => apiFetch(`/tasks/${id}/complete`, { method: 'PATCH', body: JSON.stringify({}) }),
@@ -68,6 +73,36 @@ export const MOCK = {
     started_at: new Date(Date.now() - 1820000).toISOString(), elapsed_seconds: 1820,
   },
   summary: { date: new Date().toISOString().split('T')[0], completed_count: 3, switch_count: 5, focus_minutes: 142, carry_over_count: 2 },
+  someday: {
+    tasks: [
+      {
+        id: 'someday-1',
+        title: '제품 소개 페이지 구조 정리',
+        description: '지금 당장 시작하지 않고 다음 집중 슬롯 후보로 보관',
+        status: 'PLANNED',
+        carry_over_count: 0,
+        freshness: 'NORMAL',
+        scheduled_date: null,
+      },
+      {
+        id: 'someday-2',
+        title: '외부 캘린더 연동 검토',
+        description: 'OAuth 범위와 일정 쓰기 정책 확인 필요',
+        status: 'BLOCKED',
+        carry_over_count: 1,
+        freshness: 'NORMAL',
+        scheduled_date: null,
+      },
+      {
+        id: 'someday-3',
+        title: '반복 미루는 작업 기준 재점검',
+        status: 'PLANNED',
+        carry_over_count: 3,
+        freshness: 'WARNING',
+        scheduled_date: null,
+      },
+    ],
+  },
   interrupts: [
     {
       id: 'interrupt-1',

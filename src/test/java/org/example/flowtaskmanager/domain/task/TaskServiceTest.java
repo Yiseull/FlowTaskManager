@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -196,6 +197,18 @@ class TaskServiceTest {
 
 		assertThat(result).isEqualTo(currentSession);
 		then(taskRepository).should(never()).findById(any());
+	}
+
+	// ── getSomedayTasks ──────────────────────────────────────────────
+
+	@Test
+	@DisplayName("scheduledDate가 없는 PLANNED/BLOCKED task만 언젠가 후보로 조회한다")
+	void getSomedayTasks_findsUnscheduledPlannedAndBlockedTasks() {
+		taskService.getSomedayTasks();
+
+		then(taskRepository).should().findByScheduledDateIsNullAndStatusIn(
+			List.of(TaskStatus.PLANNED, TaskStatus.BLOCKED)
+		);
 	}
 
 	// ── completeTask ─────────────────────────────────────────────────

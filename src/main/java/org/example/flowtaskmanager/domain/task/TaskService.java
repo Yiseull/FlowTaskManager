@@ -107,6 +107,13 @@ public class TaskService {
 		return taskRepository.findByScheduledDate(date);
 	}
 
+	@Transactional(readOnly = true)
+	public List<Task> getSomedayTasks() {
+		return taskRepository.findByScheduledDateIsNullAndStatusIn(
+			List.of(TaskStatus.PLANNED, TaskStatus.BLOCKED)
+		);
+	}
+
 	private Session startTaskInternal(UUID taskId, SwitchReason switchReason, String switchNote) {
 		Optional<Task> maybeActive = taskRepository.findByStatus(TaskStatus.IN_PROGRESS);
 		if (maybeActive.isPresent()) {
