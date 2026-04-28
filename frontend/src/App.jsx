@@ -6,6 +6,7 @@ import TodayScreen from './screens/TodayScreen';
 import DayStartScreen from './screens/DayStartScreen';
 import DayEndScreen from './screens/DayEndScreen';
 import CompletedScreen from './screens/CompletedScreen';
+import UpcomingScreen from './screens/UpcomingScreen';
 import StaleModal from './modals/StaleModal';
 import SettingsModal from './modals/SettingsModal';
 import { ToastContainer } from './components/Toast';
@@ -34,13 +35,15 @@ export default function App() {
     queryFn: () => apiOrMock(() => api.getToday(), MOCK.today),
   });
 
+  const carryOverPending = todayData?.carry_over_pending ?? todayData?.carryOverPending ?? [];
+
   const staleQueue = [
     ...(todayData?.planned || []),
-    ...(todayData?.carry_over_pending || []),
+    ...carryOverPending,
   ].filter(t => t.freshness === 'STALE');
 
   const showStale = staleQueue.length > 0 && !staleResolved;
-  const effectiveScreen = screen === 'today' && !showStale && (todayData?.carry_over_pending?.length ?? 0) > 0 ? 'day-start' : screen;
+  const effectiveScreen = screen === 'today' && !showStale && carryOverPending.length > 0 ? 'day-start' : screen;
 
   const endDayMutation = useMutation({
     mutationFn: async () => {
@@ -59,14 +62,15 @@ export default function App() {
   const compact = winW < 980;
 
   function handleNav(nextNav) {
-    if (nextNav === 'today' || nextNav === 'logbook') {
+    if (nextNav === 'today' || nextNav === 'upcoming' || nextNav === 'logbook') {
       setActiveNav(nextNav);
-      setScreen(nextNav === 'logbook' ? 'completed' : 'today');
+      setScreen(nextNav === 'logbook' ? 'completed' : nextNav);
       return;
     }
     if (nextNav !== 'today') {
       toast('이 섹션은 아직 준비 중입니다. 오늘 화면에서 바로 관리해 주세요.');
       setActiveNav('today');
+      setScreen('today');
       return;
     }
   }
@@ -118,7 +122,7 @@ export default function App() {
             </div>
           ) : effectiveScreen === 'day-start' ? (
             <DayStartScreen
-              carryOverPending={todayData?.carry_over_pending || []}
+              carryOverPending={carryOverPending}
               onComplete={() => {
                 queryClient.invalidateQueries({ queryKey: ['today'] });
                 setScreen('today');
@@ -133,6 +137,17 @@ export default function App() {
             />
           ) : effectiveScreen === 'completed' ? (
             <CompletedScreen tasks={todayData?.completed || []} />
+          ) : effectiveScreen === 'upcoming' ? (
+            <UpcomingScreen
+              active={todayData?.active}
+              planned={todayData?.planned || []}
+              blocked={todayData?.blocked || []}
+              carryOverPending={carryOverPending}
+              onGoToday={() => {
+                setActiveNav('today');
+                setScreen('today');
+              }}
+            />
           ) : (
             <TodayScreen onDayEnd={() => endDayMutation.mutate()} onOpenSettings={() => setSettingsOpen(true)} />
           )}
