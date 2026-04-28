@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import TodayScreen from './screens/TodayScreen';
 import DayStartScreen from './screens/DayStartScreen';
 import DayEndScreen from './screens/DayEndScreen';
+import CompletedScreen from './screens/CompletedScreen';
 import StaleModal from './modals/StaleModal';
 import SettingsModal from './modals/SettingsModal';
 import { ToastContainer } from './components/Toast';
@@ -58,13 +59,16 @@ export default function App() {
   const compact = winW < 980;
 
   function handleNav(nextNav) {
+    if (nextNav === 'today' || nextNav === 'logbook') {
+      setActiveNav(nextNav);
+      setScreen(nextNav === 'logbook' ? 'completed' : 'today');
+      return;
+    }
     if (nextNav !== 'today') {
       toast('이 섹션은 아직 준비 중입니다. 오늘 화면에서 바로 관리해 주세요.');
       setActiveNav('today');
       return;
     }
-    setActiveNav('today');
-    setScreen('today');
   }
 
   return (
@@ -127,6 +131,8 @@ export default function App() {
               onDayStart={() => { queryClient.invalidateQueries({ queryKey: ['today'] }); setScreen('today'); }}
               onBack={() => setScreen('today')}
             />
+          ) : effectiveScreen === 'completed' ? (
+            <CompletedScreen tasks={todayData?.completed || []} />
           ) : (
             <TodayScreen onDayEnd={() => endDayMutation.mutate()} onOpenSettings={() => setSettingsOpen(true)} />
           )}
