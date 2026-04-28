@@ -99,6 +99,30 @@ class TaskServiceTest {
 		then(sessionService).should().createSession(any());
 	}
 
+	@Test
+	@DisplayName("언젠가 task 생성은 날짜 없이 PLANNED로 저장하고 daily_task_limit을 적용하지 않는다")
+	void createSomedayTask_savesUnscheduledPlannedTask_withoutDailyLimit() {
+		given(taskRepository.save(any())).willAnswer(inv -> {
+			Task t = inv.getArgument(0);
+			return Task.builder()
+				.id(UUID.randomUUID()).title(t.getTitle()).description(t.getDescription()).status(t.getStatus())
+				.scheduledDate(t.getScheduledDate()).carryOverCount(t.getCarryOverCount())
+				.carryOverPending(t.isCarryOverPending()).switchCount(t.getSwitchCount())
+				.createdAt(t.getCreatedAt()).build();
+		});
+
+		Task result = taskService.createSomedayTask("언젠가 정리", "나중에");
+
+		assertThat(result.getTitle()).isEqualTo("언젠가 정리");
+		assertThat(result.getDescription()).isEqualTo("나중에");
+		assertThat(result.getStatus()).isEqualTo(TaskStatus.PLANNED);
+		assertThat(result.getScheduledDate()).isNull();
+		assertThat(result.isCarryOverPending()).isFalse();
+		then(userSettingsService).should(never()).findOrCreate();
+		then(taskRepository).should(never()).countByScheduledDateAndStatusIn(any(), any());
+		then(taskEventService).should().record(eq(result.getId()), eq(TaskEventType.CREATED));
+	}
+
 	// ── startTask ───────────────────────────────────────────────────
 
 	@Test

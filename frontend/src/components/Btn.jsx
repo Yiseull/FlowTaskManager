@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Spinner from './Spinner';
 
-export default function Btn({ children, onClick, variant = 'primary', size = 'md', disabled, loading, fullWidth }) {
+export default function Btn({ children, onClick, variant = 'primary', size = 'md', disabled, loading, fullWidth, type = 'button' }) {
   const [hover, setHover] = useState(false);
 
   const base = {
@@ -24,6 +24,7 @@ export default function Btn({ children, onClick, variant = 'primary', size = 'md
 
   return (
     <button
+      type={type}
       disabled={disabled || loading}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}

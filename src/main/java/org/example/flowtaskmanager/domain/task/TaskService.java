@@ -57,6 +57,13 @@ public class TaskService {
 	}
 
 	@Transactional
+	public Task createSomedayTask(String title, String description) {
+		Task task = taskRepository.save(Task.create(title, description, null, null));
+		taskEventService.record(task.getId(), TaskEventType.CREATED);
+		return task;
+	}
+
+	@Transactional
 	public Session startTask(StartTaskCommand cmd) {
 		return startTaskInternal(cmd.taskId(), cmd.switchReason(), cmd.switchNote());
 	}

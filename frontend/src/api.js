@@ -35,6 +35,7 @@ export const api = {
   getToday:        ()       => apiFetch('/tasks/today'),
   getSomeday:      ()       => apiFetch('/tasks/someday'),
   createTask:      (payload) => apiFetch('/tasks', { method: 'POST', body: JSON.stringify(payload) }),
+  createSomedayTask: (payload) => apiFetch('/tasks/someday', { method: 'POST', body: JSON.stringify(payload) }),
   startTask:       (id, payload = {}) => apiFetch(`/tasks/${id}/start`, { method: 'PATCH', body: JSON.stringify(payload) }),
   completeTask:    (id)     => apiFetch(`/tasks/${id}/complete`, { method: 'PATCH', body: JSON.stringify({}) }),
   blockTask:       (id)     => apiFetch(`/tasks/${id}/block`,   { method: 'PATCH', body: JSON.stringify({}) }),

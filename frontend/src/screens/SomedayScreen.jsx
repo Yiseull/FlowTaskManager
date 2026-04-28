@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, MOCK, shouldUseSomedayMockFallback } from '../api';
+import Btn from '../components/Btn';
 import FreshnessBadge from '../components/FreshnessBadge';
 import Spinner from '../components/Spinner';
+import { toast } from '../components/toastStore';
 
 async function apiOrMock(fn, mockData) {
   try { return await fn(); }
@@ -64,10 +67,19 @@ const STATUS_COPY = {
 
 export default function SomedayScreen() {
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
+  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['someday'],
     queryFn: () => apiOrMock(() => api.getSomeday(), MOCK.someday),
     retry: false,
+  });
+  const createSomedayMutation = useMutation({
+    mutationFn: (payload) => api.createSomedayTask(payload),
+    onSuccess: (_, payload) => {
+      queryClient.invalidateQueries({ queryKey: ['someday'] });
+      toast(`"${payload.title}" 보관했어요`, 'success');
+    },
+    onError: (e) => toast(e.message, 'error'),
   });
 
   const tasks = normalizeTasks(data);
@@ -137,6 +149,12 @@ export default function SomedayScreen() {
           <StatusPill tone="accent">보관함</StatusPill>
         </section>
 
+        <AddSomedayTaskCard
+          compact={compact}
+          loading={createSomedayMutation.isPending}
+          onAdd={(payload) => createSomedayMutation.mutateAsync(payload)}
+        />
+
         <Panel
           title="보관된 작업"
           count={tasks.length}
@@ -167,6 +185,97 @@ export default function SomedayScreen() {
     </div>
   );
 }
+
+function AddSomedayTaskCard({ compact, loading, onAdd }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const titleValue = title.trim();
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!titleValue || loading) return;
+
+    const payload = { title: titleValue };
+    const descriptionValue = description.trim();
+    if (descriptionValue) payload.description = descriptionValue;
+
+    try {
+      await onAdd(payload);
+      setTitle('');
+      setDescription('');
+    } catch {
+      // The mutation already surfaces the API error through toast.
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      style={{
+        padding: compact ? '18px' : '20px 22px',
+        borderRadius: 28,
+        border: '1px solid rgba(126, 141, 116, 0.16)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(247,250,245,0.9) 100%)',
+        boxShadow: 'var(--shadow-card)',
+        display: 'grid',
+        gridTemplateColumns: compact ? '1fr' : 'minmax(0, 1fr) auto',
+        gap: compact ? 14 : 18,
+        alignItems: 'end',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 15, fontWeight: 850, color: 'var(--c-text)' }}>
+            언젠가 작업 추가
+          </div>
+          <span style={{ fontSize: 13, lineHeight: 1.35, color: 'var(--c-muted)' }}>
+            오늘 계획에는 넣지 않고 보관합니다.
+          </span>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: compact ? '1fr' : 'minmax(180px, 0.9fr) minmax(220px, 1.1fr)',
+          gap: 10,
+        }}>
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="작업 제목"
+            disabled={loading}
+            aria-label="언젠가 작업 제목"
+            style={fieldStyle}
+          />
+          <input
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="설명 선택"
+            disabled={loading}
+            aria-label="언젠가 작업 설명"
+            style={fieldStyle}
+          />
+        </div>
+      </div>
+
+      <Btn type="submit" loading={loading} disabled={!titleValue} fullWidth={compact}>
+        보관하기
+      </Btn>
+    </form>
+  );
+}
+
+const fieldStyle = {
+  width: '100%',
+  minWidth: 0,
+  height: 46,
+  padding: '0 14px',
+  borderRadius: 16,
+  border: '1px solid var(--c-border)',
+  outline: 'none',
+  background: 'rgba(255,255,255,0.76)',
+  color: 'var(--c-text)',
+  fontSize: 15,
+};
 
 function Panel({ title, count, action, children }) {
   return (

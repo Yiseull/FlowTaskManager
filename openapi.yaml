@@ -63,10 +63,34 @@ paths:
                 $ref: '#/components/schemas/TodayTasksResponse'
 
   /tasks/someday:
+    post:
+      tags: [Task]
+      summary: 언젠가 Task 생성
+      description: 날짜 없이 PLANNED task를 생성한다. daily_task_limit은 오늘 할 일 카운트 정책이므로 적용하지 않는다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSomedayTaskRequest'
+            examples:
+              기본 생성:
+                value:
+                  title: 언젠가 정리할 아이디어
+                  description: 급하지 않은 참고 작업
+      responses:
+        '201':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
     get:
       tags: [Task]
       summary: 언젠가 Task 목록 조회
-      description: scheduled_date가 없는 PLANNED/BLOCKED task 후보만 반환한다. 생성/이동은 이 API에서 수행하지 않는다.
+      description: scheduled_date가 없는 PLANNED/BLOCKED task 후보만 반환한다.
       responses:
         '200':
           description: 성공
@@ -551,6 +575,18 @@ components:
         switch_note:
           type: string
           nullable: true
+
+    CreateSomedayTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          example: 언젠가 정리할 아이디어
+        description:
+          type: string
+          nullable: true
+      additionalProperties: false
 
     StartTaskRequest:
       type: object

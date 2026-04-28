@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.example.flowtaskmanager.domain.session.Session;
+import org.example.flowtaskmanager.domain.task.CreateTaskCommand;
 import org.example.flowtaskmanager.domain.task.Task;
 import org.example.flowtaskmanager.domain.task.TaskService;
 import org.example.flowtaskmanager.domain.task.TaskStatus;
@@ -48,6 +49,19 @@ class TaskControllerTest {
 	}
 
 	@Test
+	@DisplayName("POST /tasks — scheduledDate 생략 시 오늘 날짜로 생성한다")
+	void createTask_withoutScheduledDate_usesToday() {
+		Task task = stubPlannedTask("오늘 작업");
+		given(taskService.createTask(any())).willReturn(task);
+
+		taskController.createTask(new CreateTaskRequest("오늘 작업", null, null, false, null, null));
+
+		then(taskService).should().createTask(argThat((CreateTaskCommand cmd) ->
+			cmd.scheduledDate().equals(LocalDate.now())
+		));
+	}
+
+	@Test
 	@DisplayName("POST /tasks — title이 없으면 AppException이 발생한다")
 	void createTask_missingTitle_throwsException() {
 		assertThatThrownBy(() ->
@@ -65,6 +79,32 @@ class TaskControllerTest {
 			taskController.createTask(new CreateTaskRequest("작업", null, null, false, null, null))
 		).isInstanceOf(AppException.class)
 			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.DAILY_TASK_LIMIT));
+	}
+
+	// ── POST /tasks/someday ─────────────────────────────────────────
+
+	@Test
+	@DisplayName("POST /tasks/someday — 날짜 없는 PLANNED task를 생성한다")
+	void createSomedayTask_success_returnsTask() {
+		Task task = stubSomedayTask("언젠가 정리", TaskStatus.PLANNED);
+		given(taskService.createSomedayTask("언젠가 정리", "나중에")).willReturn(task);
+
+		ApiResponse<TaskController.TaskCreatedResponse> response =
+			taskController.createSomedayTask(new CreateSomedayTaskRequest("언젠가 정리", "나중에"));
+
+		assertThat(response.data().id()).isEqualTo(task.getId());
+		assertThat(response.data().title()).isEqualTo("언젠가 정리");
+		assertThat(response.data().status()).isEqualTo("PLANNED");
+		then(taskService).should().createSomedayTask("언젠가 정리", "나중에");
+	}
+
+	@Test
+	@DisplayName("POST /tasks/someday — title이 없으면 AppException이 발생한다")
+	void createSomedayTask_missingTitle_throwsException() {
+		assertThatThrownBy(() ->
+			taskController.createSomedayTask(new CreateSomedayTaskRequest(" ", null))
+		).isInstanceOf(AppException.class)
+			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
 	}
 
 	// ── GET /tasks/today ─────────────────────────────────────────────

@@ -50,6 +50,16 @@ public class TaskController {
 		return ApiResponse.of(new TaskCreatedResponse(task.getId(), task.getTitle(), task.getStatus().name()));
 	}
 
+	@PostMapping("/someday")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ApiResponse<TaskCreatedResponse> createSomedayTask(@RequestBody CreateSomedayTaskRequest request) {
+		if (request.title() == null || request.title().isBlank()) {
+			throw new AppException(ErrorCode.INVALID_REQUEST);
+		}
+		Task task = taskService.createSomedayTask(request.title(), request.description());
+		return ApiResponse.of(new TaskCreatedResponse(task.getId(), task.getTitle(), task.getStatus().name()));
+	}
+
 	@GetMapping("/today")
 	public ApiResponse<TodayTasksResponse> getTodayTasks() {
 		List<Task> tasks = taskService.getTodayTasks(LocalDate.now());
