@@ -37,9 +37,9 @@ export default function StaleModal({ tasks, onResolved }) {
         const scheduledDate = formatLocalDate(tomorrow);
         await apiOrMock(() => api.rescheduleTask(task.id, { scheduledDate }), {});
         toast('내일로 미뤘어요');
-      } else if (action === 'delete') {
+      } else if (action === 'cancel') {
         await apiOrMock(() => api.cancelTask(task.id), {});
-        toast('태스크를 삭제했어요');
+        toast('태스크를 취소했어요');
       }
       if (current + 1 >= tasks.length) onResolved();
       else setCurrent(c => c + 1);
@@ -73,7 +73,7 @@ export default function StaleModal({ tasks, onResolved }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Btn onClick={() => handle('start')} loading={loading === 'start'} fullWidth>지금 시작</Btn>
           <Btn variant="secondary" onClick={() => handle('postpone')} loading={loading === 'postpone'} fullWidth>미루기</Btn>
-          <Btn variant="danger-ghost" onClick={() => handle('delete')} loading={loading === 'delete'} fullWidth>삭제</Btn>
+          <Btn variant="danger-ghost" onClick={() => handle('cancel')} loading={loading === 'cancel'} fullWidth>취소</Btn>
         </div>
       </div>
     </div>
