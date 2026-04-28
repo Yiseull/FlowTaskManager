@@ -302,6 +302,43 @@ class TaskServiceTest {
 			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.INVALID_STATUS_TRANSITION));
 	}
 
+	// ── moveTaskToSomeday ────────────────────────────────────────────
+
+	@Test
+	@DisplayName("PLANNED task는 언젠가 보관함으로 보낼 수 있다")
+	void moveTaskToSomeday_plannedTask_clearsScheduledDate() {
+		Task task = plannedTask();
+		task.setCarryOverPending(true);
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+		Task result = taskService.moveTaskToSomeday(task.getId());
+
+		assertThat(result.getStatus()).isEqualTo(TaskStatus.PLANNED);
+		assertThat(result.getScheduledDate()).isNull();
+		assertThat(result.isCarryOverPending()).isFalse();
+		then(sessionService).should(never()).endSessionForTask(any(), any());
+	}
+
+	@Test
+	@DisplayName("PLANNED가 아닌 task는 언젠가 보관함으로 보낼 수 없다")
+	void moveTaskToSomeday_nonPlannedTask_throwsException() {
+		for (TaskStatus status : List.of(
+			TaskStatus.IN_PROGRESS,
+			TaskStatus.BLOCKED,
+			TaskStatus.COMPLETED,
+			TaskStatus.CANCELLED
+		)) {
+			Task task = taskWithStatus(status);
+			given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+			assertThatThrownBy(() -> taskService.moveTaskToSomeday(task.getId()))
+				.as("status=%s", status)
+				.isInstanceOf(AppException.class)
+				.satisfies(e -> assertThat(((AppException)e).getErrorCode())
+					.isEqualTo(ErrorCode.INVALID_STATUS_TRANSITION));
+		}
+	}
+
 	@Test
 	@DisplayName("존재하지 않는 task를 start하면 TASK_NOT_FOUND 예외가 발생한다")
 	void startTask_notFound_throwsException() {
@@ -393,6 +430,13 @@ class TaskServiceTest {
 			.id(UUID.randomUUID()).title("BLOCKED 작업").status(TaskStatus.BLOCKED)
 			.scheduledDate(today).carryOverCount(0).carryOverPending(false)
 			.switchCount(0).createdAt(Instant.now()).build();
+	}
+
+	private Task taskWithStatus(TaskStatus status) {
+		return Task.builder()
+			.id(UUID.randomUUID()).title(status.name() + " 작업").status(status)
+			.scheduledDate(today).carryOverCount(0).carryOverPending(false)
+			.switchCount(status == TaskStatus.IN_PROGRESS ? 1 : 0).createdAt(Instant.now()).build();
 	}
 
 	private Session mockSession() {

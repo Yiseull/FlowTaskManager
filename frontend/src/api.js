@@ -40,6 +40,7 @@ export const api = {
   blockTask:       (id)     => apiFetch(`/tasks/${id}/block`,   { method: 'PATCH', body: JSON.stringify({}) }),
   unblockTask:     (id)     => apiFetch(`/tasks/${id}/unblock`, { method: 'PATCH', body: JSON.stringify({}) }),
   cancelTask:      (id)     => apiFetch(`/tasks/${id}/cancel`,  { method: 'PATCH', body: JSON.stringify({}) }),
+  sendTaskToSomeday: (id)   => apiFetch(`/tasks/${id}/someday`, { method: 'PATCH', body: JSON.stringify({}) }),
   rescheduleTask:  (id, payload) => apiFetch(`/tasks/${id}/schedule`, { method: 'PATCH', body: JSON.stringify(payload) }),
   getCurrentSession: ()     => apiFetch('/sessions/current'),
   endDay:          ()       => apiFetch('/day/end', { method: 'POST', body: JSON.stringify({}) }),

@@ -191,6 +191,23 @@ class TaskControllerTest {
 		assertThat(response.data().status()).isEqualTo("CANCELLED");
 	}
 
+	// ── PATCH /tasks/:id/someday ────────────────────────────────────
+
+	@Test
+	@DisplayName("PATCH /tasks/:id/someday — 정상 보관 시 scheduledDate null을 반환한다")
+	void moveTaskToSomeday_success_returnsNullScheduledDate() {
+		Task task = Task.builder()
+			.id(UUID.randomUUID()).title("언젠가 할 작업").status(TaskStatus.PLANNED)
+			.scheduledDate(null).carryOverCount(1).carryOverPending(false)
+			.switchCount(0).createdAt(Instant.now()).build();
+		given(taskService.moveTaskToSomeday(task.getId())).willReturn(task);
+
+		ApiResponse<TaskController.TaskScheduleResponse> response = taskController.moveTaskToSomeday(task.getId());
+
+		assertThat(response.data().status()).isEqualTo("PLANNED");
+		assertThat(response.data().scheduledDate()).isNull();
+	}
+
 	// ── PATCH /tasks/:id/schedule ────────────────────────────────────
 
 	@Test

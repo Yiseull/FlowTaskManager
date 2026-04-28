@@ -104,6 +104,12 @@ public class TaskController {
 		return ApiResponse.of(new TaskStatusResponse(task.getId(), task.getStatus().name()));
 	}
 
+	@PatchMapping("/{id}/someday")
+	public ApiResponse<TaskScheduleResponse> moveTaskToSomeday(@PathVariable UUID id) {
+		Task task = taskService.moveTaskToSomeday(id);
+		return ApiResponse.of(new TaskScheduleResponse(task.getId(), task.getStatus().name(), task.getScheduledDate()));
+	}
+
 	@PatchMapping("/{id}/schedule")
 	public ApiResponse<TaskScheduleResponse> rescheduleTask(
 		@PathVariable UUID id,

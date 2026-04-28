@@ -3,8 +3,10 @@ import CircleCheck from './CircleCheck';
 import FreshnessBadge from './FreshnessBadge';
 import Btn from './Btn';
 
-export default function TaskRow({ task, status, onStart, onCancel, onUnblock, loading }) {
+export default function TaskRow({ task, status, onStart, onCancel, onUnblock, onSendToSomeday, loading, somedayLoading }) {
   const [hover, setHover] = useState(false);
+  const compact = typeof window !== 'undefined' && window.innerWidth < 720;
+  const showActions = hover || compact;
 
   return (
     <div
@@ -12,6 +14,7 @@ export default function TaskRow({ task, status, onStart, onCancel, onUnblock, lo
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
+        flexWrap: compact ? 'wrap' : 'nowrap',
         padding: '16px 0', minHeight: 68, borderRadius: 8,
         background: hover ? 'var(--c-hover)' : 'transparent',
         transition: 'background 0.1s', cursor: 'default',
@@ -32,9 +35,21 @@ export default function TaskRow({ task, status, onStart, onCancel, onUnblock, lo
           )}
         </div>
       </div>
-      {hover && (
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0, animation: 'fadeUp 0.1s ease' }}>
+      {showActions && (
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          justifyContent: compact ? 'flex-end' : 'flex-start',
+          marginLeft: compact ? 44 : 0,
+          width: compact ? 'calc(100% - 44px)' : 'auto',
+          animation: 'fadeUp 0.1s ease',
+        }}>
           {status === 'PLANNED' && <Btn size="sm" onClick={onStart} loading={loading}>시작</Btn>}
+          {status === 'PLANNED' && onSendToSomeday && (
+            <Btn size="sm" variant="secondary" onClick={onSendToSomeday} loading={somedayLoading}>언젠가로</Btn>
+          )}
           {status === 'BLOCKED' && <Btn size="sm" variant="secondary" onClick={onUnblock} loading={loading}>해제</Btn>}
           <Btn size="sm" variant="danger-ghost" onClick={onCancel}>취소</Btn>
         </div>

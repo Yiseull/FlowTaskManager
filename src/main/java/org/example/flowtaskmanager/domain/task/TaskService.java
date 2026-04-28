@@ -102,6 +102,13 @@ public class TaskService {
 		return task;
 	}
 
+	@Transactional
+	public Task moveTaskToSomeday(UUID taskId) {
+		Task task = findTask(taskId);
+		task.moveToSomeday();
+		return task;
+	}
+
 	@Transactional(readOnly = true)
 	public List<Task> getTodayTasks(LocalDate date) {
 		return taskRepository.findByScheduledDate(date);

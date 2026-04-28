@@ -136,6 +136,10 @@ public class Task {
 		this.carryOverPending = false;
 	}
 
+	public void moveToSomeday() {
+		reschedule(null);
+	}
+
 	public void incrementSwitchCount() {
 		switchCount++;
 	}

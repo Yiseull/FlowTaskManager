@@ -80,6 +80,11 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
     queryClient.invalidateQueries({ queryKey: ['interrupts'] });
   }
 
+  function refreshAfterSomedayMove() {
+    queryClient.invalidateQueries({ queryKey: ['today'] });
+    queryClient.invalidateQueries({ queryKey: ['someday'] });
+  }
+
   const completeMutation = useMutation({
     mutationFn: () => api.completeTask(todayData.active.id),
     onSuccess: () => { toast('완료! 🎉', 'success'); refresh(); },
@@ -101,6 +106,15 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   const cancelMutation = useMutation({
     mutationFn: (id) => api.cancelTask(id),
     onSuccess: () => { toast('취소됐어요'); refresh(); },
+    onError: (e) => toast(e.message, 'error'),
+  });
+
+  const sendToSomedayMutation = useMutation({
+    mutationFn: (id) => api.sendTaskToSomeday(id),
+    onSuccess: () => {
+      toast('언젠가로 보냈어요', 'success');
+      refreshAfterSomedayMove();
+    },
     onError: (e) => toast(e.message, 'error'),
   });
 
@@ -194,6 +208,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
 
   const startingId = startMutation.isPending ? startMutation.variables?.id : null;
   const unblockingId = unblockMutation.isPending ? unblockMutation.variables : null;
+  const sendingToSomedayId = sendToSomedayMutation.isPending ? sendToSomedayMutation.variables : null;
   const convertingInterruptId = convertInterruptMutation.isPending ? convertInterruptMutation.variables?.id : null;
   const dismissingInterruptId = dismissInterruptMutation.isPending ? dismissInterruptMutation.variables : null;
 
@@ -251,8 +266,10 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
                   task={task}
                   status="PLANNED"
                   onStart={() => handleSwitchRequest(task)}
+                  onSendToSomeday={() => sendToSomedayMutation.mutate(task.id)}
                   onCancel={() => cancelMutation.mutate(task.id)}
                   loading={startingId === task.id}
+                  somedayLoading={sendingToSomedayId === task.id}
                 />
               ))}
               <AddTaskRow onAdd={(title) => addTaskMutation.mutate(title)} />

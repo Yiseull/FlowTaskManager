@@ -132,6 +132,34 @@ class TaskStatusTransitionTest {
 	}
 
 	@Test
+	@DisplayName("PLANNED task를 moveToSomeday()하면 scheduledDate가 없어진다")
+	void moveToSomeday_fromPlanned_clearsScheduledDate() {
+		Task task = taskWith(TaskStatus.PLANNED);
+		task.setCarryOverPending(true);
+
+		task.moveToSomeday();
+
+		assertThat(task.getStatus()).isEqualTo(TaskStatus.PLANNED);
+		assertThat(task.getScheduledDate()).isNull();
+		assertThat(task.isCarryOverPending()).isFalse();
+	}
+
+	@Test
+	@DisplayName("PLANNED가 아닌 task를 moveToSomeday()하면 예외가 발생한다")
+	void moveToSomeday_fromNonPlanned_throwsException() {
+		for (TaskStatus status : new TaskStatus[] {
+			TaskStatus.IN_PROGRESS,
+			TaskStatus.BLOCKED,
+			TaskStatus.COMPLETED,
+			TaskStatus.CANCELLED
+		}) {
+			Task task = taskWith(status);
+
+			assertInvalidTransition(task::moveToSomeday);
+		}
+	}
+
+	@Test
 	@DisplayName("incrementSwitchCount() 호출 시 switchCount가 1 증가한다")
 	void incrementSwitchCount_increasesByOne() {
 		Task task = taskWith(TaskStatus.IN_PROGRESS);

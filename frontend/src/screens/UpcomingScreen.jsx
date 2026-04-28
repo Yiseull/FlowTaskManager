@@ -1,5 +1,8 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import FreshnessBadge from '../components/FreshnessBadge';
 import Btn from '../components/Btn';
+import { api } from '../api';
+import { toast } from '../components/toastStore';
 
 function carryOverCount(task) {
   return task.carry_over_count ?? task.carryOverCount ?? 0;
@@ -12,6 +15,7 @@ export default function UpcomingScreen({
   carryOverPending = [],
   onGoToday,
 }) {
+  const queryClient = useQueryClient();
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
   const hasPlanned = planned.length > 0;
   const hasBlocked = blocked.length > 0;
@@ -19,6 +23,16 @@ export default function UpcomingScreen({
   const totalPending = planned.length + blocked.length + carryOverPending.length;
   const staleCount = planned.filter(task => task.freshness === 'STALE').length;
   const warningCount = planned.filter(task => task.freshness === 'WARNING').length;
+  const sendToSomedayMutation = useMutation({
+    mutationFn: (id) => api.sendTaskToSomeday(id),
+    onSuccess: () => {
+      toast('언젠가로 보냈어요', 'success');
+      queryClient.invalidateQueries({ queryKey: ['today'] });
+      queryClient.invalidateQueries({ queryKey: ['someday'] });
+    },
+    onError: (e) => toast(e.message, 'error'),
+  });
+  const sendingToSomedayId = sendToSomedayMutation.isPending ? sendToSomedayMutation.variables : null;
 
   return (
     <div style={{
@@ -112,7 +126,13 @@ export default function UpcomingScreen({
             {hasPlanned ? (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {planned.map((task, index) => (
-                  <PlannedRow key={task.id} task={task} last={index === planned.length - 1} />
+                  <PlannedRow
+                    key={task.id}
+                    task={task}
+                    last={index === planned.length - 1}
+                    onSendToSomeday={() => sendToSomedayMutation.mutate(task.id)}
+                    somedayLoading={sendingToSomedayId === task.id}
+                  />
                 ))}
               </div>
             ) : (
@@ -227,12 +247,15 @@ function Panel({ title, count, action, children }) {
   );
 }
 
-function PlannedRow({ task, last }) {
+function PlannedRow({ task, last, onSendToSomeday, somedayLoading }) {
+  const compact = typeof window !== 'undefined' && window.innerWidth < 720;
+
   return (
     <div style={{
       display: 'flex',
-      alignItems: 'center',
+      alignItems: compact ? 'flex-start' : 'center',
       gap: 14,
+      flexWrap: compact ? 'wrap' : 'nowrap',
       padding: '17px 0',
       borderBottom: last ? 'none' : '1px solid rgba(123, 137, 112, 0.12)',
     }}>
@@ -260,6 +283,16 @@ function PlannedRow({ task, last }) {
         <div style={{ fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.45 }}>
           {carryOverCount(task) > 0 ? `${carryOverCount(task)}회 이월된 PLANNED 작업` : '오늘 시작 가능한 PLANNED 작업'}
         </div>
+      </div>
+      <div style={{
+        display: 'flex',
+        flexShrink: 0,
+        justifyContent: compact ? 'flex-end' : 'flex-start',
+        width: compact ? '100%' : 'auto',
+      }}>
+        <Btn size="sm" variant="secondary" onClick={onSendToSomeday} loading={somedayLoading}>
+          언젠가로
+        </Btn>
       </div>
     </div>
   );
