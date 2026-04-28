@@ -308,11 +308,40 @@ class TaskServiceTest {
 		Task task = plannedTask();
 		LocalDate tomorrow = today.plusDays(1);
 		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+		given(userSettingsService.findOrCreate()).willReturn(UserSettings.createDefault());
+		given(taskRepository.countByScheduledDateAndStatusIn(eq(tomorrow), any())).willReturn(0);
 
 		Task result = taskService.rescheduleTask(task.getId(), tomorrow);
 
 		assertThat(result.getScheduledDate()).isEqualTo(tomorrow);
 		assertThat(result.isCarryOverPending()).isFalse();
+	}
+
+	@Test
+	@DisplayName("대상 날짜가 한도 이상이면 다시 배치할 수 없다")
+	void rescheduleTask_targetDateExceedsDailyLimit_throwsException() {
+		Task task = plannedTask();
+		LocalDate tomorrow = today.plusDays(1);
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+		given(userSettingsService.findOrCreate()).willReturn(UserSettings.createDefault());
+		given(taskRepository.countByScheduledDateAndStatusIn(eq(tomorrow), any())).willReturn(5);
+
+		assertThatThrownBy(() -> taskService.rescheduleTask(task.getId(), tomorrow))
+			.isInstanceOf(AppException.class)
+			.satisfies(e -> assertThat(((AppException)e).getErrorCode()).isEqualTo(ErrorCode.DAILY_TASK_LIMIT));
+	}
+
+	@Test
+	@DisplayName("같은 날짜로 다시 배치할 때는 자기 자신 때문에 한도 초과로 막지 않는다")
+	void rescheduleTask_sameDate_doesNotCheckDailyLimit() {
+		Task task = plannedTask();
+		given(taskRepository.findById(task.getId())).willReturn(Optional.of(task));
+
+		Task result = taskService.rescheduleTask(task.getId(), today);
+
+		assertThat(result.getScheduledDate()).isEqualTo(today);
+		then(userSettingsService).should(never()).findOrCreate();
+		then(taskRepository).should(never()).countByScheduledDateAndStatusIn(any(), any());
 	}
 
 	@Test

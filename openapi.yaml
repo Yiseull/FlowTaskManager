@@ -240,6 +240,7 @@ paths:
     patch:
       tags: [Task]
       summary: Task 일정 변경 (PLANNED만 가능)
+      description: 대상 날짜의 PLANNED/IN_PROGRESS/BLOCKED task 수가 daily_task_limit 이상이면 DAILY_TASK_LIMIT 에러를 반환한다.
       parameters:
         - $ref: '#/components/parameters/TaskId'
       requestBody:

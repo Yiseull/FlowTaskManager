@@ -32,6 +32,13 @@ function scheduledDate(task) {
   return task.scheduled_date ?? task.scheduledDate ?? null;
 }
 
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const STATUS_COPY = {
   PLANNED: {
     label: 'PLANNED',
@@ -80,6 +87,18 @@ export default function SomedayScreen() {
       toast(`"${payload.title}" 보관했어요`, 'success');
     },
     onError: (e) => toast(e.message, 'error'),
+  });
+  const moveTodayMutation = useMutation({
+    mutationFn: (id) => api.rescheduleTask(id, { scheduledDate: formatLocalDate(new Date()) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['someday'] });
+      queryClient.invalidateQueries({ queryKey: ['today'] });
+      toast('오늘 계획으로 가져왔어요', 'success');
+    },
+    onError: (e) => {
+      const message = e.code === 'DAILY_TASK_LIMIT' ? '오늘 할 일 한도를 초과했어요' : e.message;
+      toast(message, 'error');
+    },
   });
 
   const tasks = normalizeTasks(data);
@@ -170,7 +189,13 @@ export default function SomedayScreen() {
           ) : tasks.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {tasks.map((task, index) => (
-                <SomedayRow key={task.id || `${task.title}-${index}`} task={task} last={index === tasks.length - 1} />
+                <SomedayRow
+                  key={task.id || `${task.title}-${index}`}
+                  task={task}
+                  last={index === tasks.length - 1}
+                  movingToday={moveTodayMutation.isPending && moveTodayMutation.variables === task.id}
+                  onMoveToday={() => moveTodayMutation.mutate(task.id)}
+                />
               ))}
             </div>
           ) : (
@@ -314,8 +339,10 @@ function Panel({ title, count, action, children }) {
   );
 }
 
-function SomedayRow({ task, last }) {
+function SomedayRow({ task, last, movingToday, onMoveToday }) {
+  const compact = typeof window !== 'undefined' && window.innerWidth < 720;
   const status = taskStatus(task);
+  const canMoveToday = status === 'PLANNED';
   const copy = STATUS_COPY[status] || {
     label: status,
     description: '상태 확인',
@@ -330,6 +357,7 @@ function SomedayRow({ task, last }) {
       display: 'flex',
       alignItems: 'flex-start',
       gap: 14,
+      flexWrap: compact ? 'wrap' : 'nowrap',
       padding: '18px 0',
       borderBottom: last ? 'none' : '1px solid rgba(123, 137, 112, 0.12)',
     }}>
@@ -375,6 +403,20 @@ function SomedayRow({ task, last }) {
           {carryOverCount(task) > 0 && <MetaPill>{carryOverCount(task)}회 이월</MetaPill>}
         </div>
       </div>
+
+      {canMoveToday && (
+        <div style={{
+          flexShrink: 0,
+          paddingTop: 2,
+          width: compact ? '100%' : 'auto',
+          display: 'flex',
+          justifyContent: compact ? 'flex-end' : 'flex-start',
+        }}>
+          <Btn size="sm" variant="secondary" onClick={onMoveToday} loading={movingToday} fullWidth={compact}>
+            오늘로
+          </Btn>
+        </div>
+      )}
     </div>
   );
 }

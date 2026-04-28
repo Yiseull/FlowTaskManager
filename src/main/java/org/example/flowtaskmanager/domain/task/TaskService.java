@@ -105,6 +105,9 @@ public class TaskService {
 	@Transactional
 	public Task rescheduleTask(UUID taskId, LocalDate scheduledDate) {
 		Task task = findTask(taskId);
+		if (task.getStatus() == TaskStatus.PLANNED && scheduledDate != null && !scheduledDate.equals(task.getScheduledDate())) {
+			ensureScheduledDateCapacity(scheduledDate);
+		}
 		task.reschedule(scheduledDate);
 		return task;
 	}
@@ -164,5 +167,16 @@ public class TaskService {
 
 	private UserSettings findOrCreateSettings() {
 		return userSettingsService.findOrCreate();
+	}
+
+	private void ensureScheduledDateCapacity(LocalDate scheduledDate) {
+		UserSettings settings = findOrCreateSettings();
+		int taskCount = taskRepository.countByScheduledDateAndStatusIn(
+			scheduledDate,
+			List.of(TaskStatus.PLANNED, TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED)
+		);
+		if (taskCount >= settings.getDailyTaskLimit()) {
+			throw new AppException(ErrorCode.DAILY_TASK_LIMIT);
+		}
 	}
 }
