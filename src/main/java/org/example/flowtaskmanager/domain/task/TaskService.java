@@ -125,6 +125,14 @@ public class TaskService {
 	}
 
 	@Transactional(readOnly = true)
+	public List<Task> getUpcomingTasks(LocalDate date) {
+		return taskRepository.findByScheduledDateAfterAndStatusInOrderByScheduledDateAscCreatedAtAsc(
+			date,
+			List.of(TaskStatus.PLANNED, TaskStatus.BLOCKED)
+		);
+	}
+
+	@Transactional(readOnly = true)
 	public List<Task> getSomedayTasks() {
 		return taskRepository.findByScheduledDateIsNullAndStatusIn(
 			List.of(TaskStatus.PLANNED, TaskStatus.BLOCKED)

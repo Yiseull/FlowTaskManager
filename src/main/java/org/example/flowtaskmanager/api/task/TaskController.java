@@ -66,6 +66,21 @@ public class TaskController {
 		return ApiResponse.of(buildTodayResponse(tasks));
 	}
 
+	@GetMapping("/upcoming")
+	public ApiResponse<UpcomingTasksResponse> getUpcomingTasks() {
+		List<UpcomingTasksResponse.TaskDto> tasks = taskService.getUpcomingTasks(LocalDate.now()).stream()
+			.map(t -> new UpcomingTasksResponse.TaskDto(
+				t.getId(),
+				t.getTitle(),
+				t.getStatus().name(),
+				t.getScheduledDate(),
+				t.getCarryOverCount(),
+				t.calculateFreshness().orElse(null)
+			))
+			.toList();
+		return ApiResponse.of(new UpcomingTasksResponse(tasks));
+	}
+
 	@GetMapping("/someday")
 	public ApiResponse<SomedayTasksResponse> getSomedayTasks() {
 		List<SomedayTasksResponse.TaskDto> tasks = taskService.getSomedayTasks().stream()

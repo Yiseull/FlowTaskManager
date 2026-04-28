@@ -33,6 +33,7 @@ export function shouldUseSomedayMockFallback(error) {
 
 export const api = {
   getToday:        ()       => apiFetch('/tasks/today'),
+  getUpcoming:     ()       => apiFetch('/tasks/upcoming'),
   getSomeday:      ()       => apiFetch('/tasks/someday'),
   createTask:      (payload) => apiFetch('/tasks', { method: 'POST', body: JSON.stringify(payload) }),
   createSomedayTask: (payload) => apiFetch('/tasks/someday', { method: 'POST', body: JSON.stringify(payload) }),
@@ -102,6 +103,26 @@ export const MOCK = {
         carry_over_count: 3,
         freshness: 'WARNING',
         scheduled_date: null,
+      },
+    ],
+  },
+  upcoming: {
+    tasks: [
+      {
+        id: 'future-1',
+        title: '릴리즈 노트 초안 정리',
+        status: 'PLANNED',
+        scheduledDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        carryOverCount: 0,
+        freshness: 'NORMAL',
+      },
+      {
+        id: 'future-2',
+        title: '외부 리뷰 결과 반영',
+        status: 'BLOCKED',
+        scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        carryOverCount: 0,
+        freshness: 'NORMAL',
       },
     ],
   },

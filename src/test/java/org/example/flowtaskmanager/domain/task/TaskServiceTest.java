@@ -235,6 +235,19 @@ class TaskServiceTest {
 		);
 	}
 
+	// ── getUpcomingTasks ─────────────────────────────────────────────
+
+	@Test
+	@DisplayName("오늘 이후 PLANNED/BLOCKED task만 예정 후보로 조회한다")
+	void getUpcomingTasks_findsFuturePlannedAndBlockedTasks() {
+		taskService.getUpcomingTasks(today);
+
+		then(taskRepository).should().findByScheduledDateAfterAndStatusInOrderByScheduledDateAscCreatedAtAsc(
+			today,
+			List.of(TaskStatus.PLANNED, TaskStatus.BLOCKED)
+		);
+	}
+
 	// ── completeTask ─────────────────────────────────────────────────
 
 	@Test

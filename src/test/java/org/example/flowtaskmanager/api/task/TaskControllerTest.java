@@ -138,6 +138,30 @@ class TaskControllerTest {
 		assertThat(response.data().planned()).isEmpty();
 	}
 
+	// ── GET /tasks/upcoming ──────────────────────────────────────────
+
+	@Test
+	@DisplayName("GET /tasks/upcoming — 오늘 이후 PLANNED/BLOCKED task를 날짜와 함께 반환한다")
+	void getUpcomingTasks_returnsFutureTasks() {
+		Task planned = Task.builder()
+			.id(UUID.randomUUID()).title("내일 할 작업").status(TaskStatus.PLANNED)
+			.scheduledDate(LocalDate.now().plusDays(1)).carryOverCount(2).carryOverPending(false)
+			.switchCount(0).createdAt(Instant.now()).build();
+		Task blocked = Task.builder()
+			.id(UUID.randomUUID()).title("다음 주 차단 작업").status(TaskStatus.BLOCKED)
+			.scheduledDate(LocalDate.now().plusDays(7)).carryOverCount(0).carryOverPending(false)
+			.switchCount(0).createdAt(Instant.now()).build();
+		given(taskService.getUpcomingTasks(any(LocalDate.class))).willReturn(List.of(planned, blocked));
+
+		ApiResponse<UpcomingTasksResponse> response = taskController.getUpcomingTasks();
+
+		assertThat(response.data().tasks()).hasSize(2);
+		assertThat(response.data().tasks().get(0).title()).isEqualTo("내일 할 작업");
+		assertThat(response.data().tasks().get(0).status()).isEqualTo("PLANNED");
+		assertThat(response.data().tasks().get(0).scheduledDate()).isEqualTo(planned.getScheduledDate());
+		assertThat(response.data().tasks().get(1).status()).isEqualTo("BLOCKED");
+	}
+
 	// ── GET /tasks/someday ───────────────────────────────────────────
 
 	@Test

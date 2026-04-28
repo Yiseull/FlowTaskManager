@@ -1,11 +1,43 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import FreshnessBadge from '../components/FreshnessBadge';
 import Btn from '../components/Btn';
-import { api } from '../api';
+import { api, MOCK, shouldUseMockFallback } from '../api';
 import { toast } from '../components/toastStore';
+
+async function apiOrMock(fn, mockData) {
+  try { return await fn(); }
+  catch (e) {
+    if (shouldUseMockFallback(e)) return mockData;
+    throw e;
+  }
+}
 
 function carryOverCount(task) {
   return task.carry_over_count ?? task.carryOverCount ?? 0;
+}
+
+function scheduledDate(task) {
+  return task.scheduled_date ?? task.scheduledDate ?? null;
+}
+
+function normalizeTasks(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.tasks)) return data.tasks;
+  return [];
+}
+
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel(value) {
+  if (!value) return '날짜 없음';
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
 }
 
 export default function UpcomingScreen({
@@ -17,10 +49,17 @@ export default function UpcomingScreen({
 }) {
   const queryClient = useQueryClient();
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
+  const { data: upcomingData, isLoading: upcomingLoading, isError: upcomingError, error: upcomingErrorValue } = useQuery({
+    queryKey: ['upcoming'],
+    queryFn: () => apiOrMock(() => api.getUpcoming(), MOCK.upcoming),
+    retry: false,
+  });
+  const futureTasks = normalizeTasks(upcomingData);
   const hasPlanned = planned.length > 0;
   const hasBlocked = blocked.length > 0;
   const hasCarryOver = carryOverPending.length > 0;
   const totalPending = planned.length + blocked.length + carryOverPending.length;
+  const totalTracked = totalPending + futureTasks.length;
   const staleCount = planned.filter(task => task.freshness === 'STALE').length;
   const warningCount = planned.filter(task => task.freshness === 'WARNING').length;
   const sendToSomedayMutation = useMutation({
@@ -28,11 +67,25 @@ export default function UpcomingScreen({
     onSuccess: () => {
       toast('언젠가로 보냈어요', 'success');
       queryClient.invalidateQueries({ queryKey: ['today'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming'] });
       queryClient.invalidateQueries({ queryKey: ['someday'] });
     },
     onError: (e) => toast(e.message, 'error'),
   });
+  const moveTodayMutation = useMutation({
+    mutationFn: (id) => api.rescheduleTask(id, { scheduledDate: formatLocalDate(new Date()) }),
+    onSuccess: () => {
+      toast('오늘 계획으로 가져왔어요', 'success');
+      queryClient.invalidateQueries({ queryKey: ['today'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming'] });
+    },
+    onError: (e) => {
+      const message = e.code === 'DAILY_TASK_LIMIT' ? '오늘 할 일 한도를 초과했어요' : e.message;
+      toast(message, 'error');
+    },
+  });
   const sendingToSomedayId = sendToSomedayMutation.isPending ? sendToSomedayMutation.variables : null;
+  const movingTodayId = moveTodayMutation.isPending ? moveTodayMutation.variables : null;
 
   return (
     <div style={{
@@ -58,18 +111,19 @@ export default function UpcomingScreen({
               예정
             </div>
             <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--c-muted)', maxWidth: 620 }}>
-              오늘 시작할 수 있는 작업을 검토합니다. 시작, 전환, 차단 해제는 오늘 화면에서 진행합니다.
+              오늘 시작할 수 있는 작업과 이후로 잡아둔 일정을 함께 검토합니다. 시작과 전환은 오늘 화면에서 진행합니다.
             </div>
           </div>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: compact ? 'repeat(3, minmax(0, 1fr))' : 'repeat(3, 92px)',
+            gridTemplateColumns: compact ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, 88px)',
             gap: 10,
           }}>
             <StatTile label="예정" value={planned.length} tone="accent" />
             <StatTile label="차단" value={blocked.length} tone="warn" />
             <StatTile label="대기" value={carryOverPending.length} tone="muted" />
+            <StatTile label="이후" value={futureTasks.length} tone="accent" />
           </div>
         </section>
 
@@ -188,7 +242,37 @@ export default function UpcomingScreen({
           </div>
         </section>
 
-        {totalPending === 0 && (
+        <Panel title="이후 일정" count={futureTasks.length} action={<StatusPill tone="accent">이후</StatusPill>}>
+          {upcomingLoading ? (
+            <EmptyState title="이후 일정을 불러오는 중입니다." />
+          ) : upcomingError ? (
+            <EmptyState
+              title="이후 일정을 불러오지 못했습니다."
+              description={upcomingErrorValue?.message || '잠시 후 다시 시도해 주세요.'}
+            />
+          ) : futureTasks.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {futureTasks.map((task, index) => (
+                <FutureRow
+                  key={task.id}
+                  task={task}
+                  last={index === futureTasks.length - 1}
+                  onMoveToday={() => moveTodayMutation.mutate(task.id)}
+                  onSendToSomeday={() => sendToSomedayMutation.mutate(task.id)}
+                  todayLoading={movingTodayId === task.id}
+                  somedayLoading={sendingToSomedayId === task.id}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="이후로 잡아둔 일정이 없습니다."
+              description="미룬 작업이나 다음 날 이후로 배치한 작업이 생기면 이곳에 표시됩니다."
+            />
+          )}
+        </Panel>
+
+        {totalTracked === 0 && (
           <section style={{
             padding: compact ? '24px 20px' : '28px 30px',
             borderRadius: 30,
@@ -294,6 +378,64 @@ function PlannedRow({ task, last, onSendToSomeday, somedayLoading }) {
           언젠가로
         </Btn>
       </div>
+    </div>
+  );
+}
+
+function FutureRow({ task, last, onMoveToday, onSendToSomeday, todayLoading, somedayLoading }) {
+  const compact = typeof window !== 'undefined' && window.innerWidth < 720;
+  const status = task.status || task.task_status || task.taskStatus || 'PLANNED';
+  const planned = status === 'PLANNED';
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: compact ? 'flex-start' : 'center',
+      gap: 14,
+      flexWrap: compact ? 'wrap' : 'nowrap',
+      padding: '17px 0',
+      borderBottom: last ? 'none' : '1px solid rgba(123, 137, 112, 0.12)',
+    }}>
+      <div style={{
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        flexShrink: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: planned ? 'var(--c-accent-faint)' : 'var(--c-warn-bg)',
+        color: planned ? 'var(--c-accent-strong)' : 'var(--c-warn)',
+      }}>
+        {planned ? <CalendarIcon /> : <LockIcon />}
+      </div>
+
+      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 17, lineHeight: 1.4, fontWeight: 750, color: 'var(--c-text)', wordBreak: 'break-word' }}>
+            {task.title}
+          </span>
+          <StatusPill tone={planned ? 'accent' : 'warn'}>{status}</StatusPill>
+          <FreshnessBadge freshness={task.freshness} count={carryOverCount(task)} />
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--c-muted)', lineHeight: 1.45 }}>
+          {formatDateLabel(scheduledDate(task))}
+        </div>
+      </div>
+
+      {planned && (
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          justifyContent: compact ? 'flex-end' : 'flex-start',
+          width: compact ? '100%' : 'auto',
+        }}>
+          <Btn size="sm" variant="secondary" onClick={onMoveToday} loading={todayLoading}>오늘로</Btn>
+          <Btn size="sm" variant="secondary" onClick={onSendToSomeday} loading={somedayLoading}>언젠가로</Btn>
+        </div>
+      )}
     </div>
   );
 }
