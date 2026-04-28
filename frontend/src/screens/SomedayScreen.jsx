@@ -100,6 +100,14 @@ export default function SomedayScreen() {
       toast(message, 'error');
     },
   });
+  const cancelMutation = useMutation({
+    mutationFn: (id) => api.cancelTask(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['someday'] });
+      toast('보관 작업을 취소했어요');
+    },
+    onError: (e) => toast(e.message, 'error'),
+  });
 
   const tasks = normalizeTasks(data);
   const plannedCount = tasks.filter(task => taskStatus(task) === 'PLANNED').length;
@@ -194,7 +202,9 @@ export default function SomedayScreen() {
                   task={task}
                   last={index === tasks.length - 1}
                   movingToday={moveTodayMutation.isPending && moveTodayMutation.variables === task.id}
+                  cancelling={cancelMutation.isPending && cancelMutation.variables === task.id}
                   onMoveToday={() => moveTodayMutation.mutate(task.id)}
+                  onCancel={() => cancelMutation.mutate(task.id)}
                 />
               ))}
             </div>
@@ -339,10 +349,11 @@ function Panel({ title, count, action, children }) {
   );
 }
 
-function SomedayRow({ task, last, movingToday, onMoveToday }) {
+function SomedayRow({ task, last, movingToday, cancelling, onMoveToday, onCancel }) {
   const compact = typeof window !== 'undefined' && window.innerWidth < 720;
   const status = taskStatus(task);
   const canMoveToday = status === 'PLANNED';
+  const canCancel = status === 'PLANNED' || status === 'BLOCKED';
   const copy = STATUS_COPY[status] || {
     label: status,
     description: '상태 확인',
@@ -404,17 +415,26 @@ function SomedayRow({ task, last, movingToday, onMoveToday }) {
         </div>
       </div>
 
-      {canMoveToday && (
+      {(canMoveToday || canCancel) && (
         <div style={{
           flexShrink: 0,
           paddingTop: 2,
           width: compact ? '100%' : 'auto',
           display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
           justifyContent: compact ? 'flex-end' : 'flex-start',
         }}>
-          <Btn size="sm" variant="secondary" onClick={onMoveToday} loading={movingToday} fullWidth={compact}>
-            오늘로
-          </Btn>
+          {canMoveToday && (
+            <Btn size="sm" variant="secondary" onClick={onMoveToday} loading={movingToday}>
+              오늘로
+            </Btn>
+          )}
+          {canCancel && (
+            <Btn size="sm" variant="danger-ghost" onClick={onCancel} loading={cancelling}>
+              취소
+            </Btn>
+          )}
         </div>
       )}
     </div>

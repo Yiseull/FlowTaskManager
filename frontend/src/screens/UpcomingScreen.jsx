@@ -84,8 +84,17 @@ export default function UpcomingScreen({
       toast(message, 'error');
     },
   });
+  const cancelMutation = useMutation({
+    mutationFn: (id) => api.cancelTask(id),
+    onSuccess: () => {
+      toast('예정 작업을 취소했어요');
+      queryClient.invalidateQueries({ queryKey: ['upcoming'] });
+    },
+    onError: (e) => toast(e.message, 'error'),
+  });
   const sendingToSomedayId = sendToSomedayMutation.isPending ? sendToSomedayMutation.variables : null;
   const movingTodayId = moveTodayMutation.isPending ? moveTodayMutation.variables : null;
+  const cancellingId = cancelMutation.isPending ? cancelMutation.variables : null;
 
   return (
     <div style={{
@@ -259,8 +268,10 @@ export default function UpcomingScreen({
                   last={index === futureTasks.length - 1}
                   onMoveToday={() => moveTodayMutation.mutate(task.id)}
                   onSendToSomeday={() => sendToSomedayMutation.mutate(task.id)}
+                  onCancel={() => cancelMutation.mutate(task.id)}
                   todayLoading={movingTodayId === task.id}
                   somedayLoading={sendingToSomedayId === task.id}
+                  cancelLoading={cancellingId === task.id}
                 />
               ))}
             </div>
@@ -382,10 +393,11 @@ function PlannedRow({ task, last, onSendToSomeday, somedayLoading }) {
   );
 }
 
-function FutureRow({ task, last, onMoveToday, onSendToSomeday, todayLoading, somedayLoading }) {
+function FutureRow({ task, last, onMoveToday, onSendToSomeday, onCancel, todayLoading, somedayLoading, cancelLoading }) {
   const compact = typeof window !== 'undefined' && window.innerWidth < 720;
   const status = task.status || task.task_status || task.taskStatus || 'PLANNED';
   const planned = status === 'PLANNED';
+  const cancellable = planned || status === 'BLOCKED';
 
   return (
     <div style={{
@@ -423,7 +435,7 @@ function FutureRow({ task, last, onMoveToday, onSendToSomeday, todayLoading, som
         </div>
       </div>
 
-      {planned && (
+      {(planned || cancellable) && (
         <div style={{
           display: 'flex',
           gap: 8,
@@ -432,8 +444,15 @@ function FutureRow({ task, last, onMoveToday, onSendToSomeday, todayLoading, som
           justifyContent: compact ? 'flex-end' : 'flex-start',
           width: compact ? '100%' : 'auto',
         }}>
-          <Btn size="sm" variant="secondary" onClick={onMoveToday} loading={todayLoading}>오늘로</Btn>
-          <Btn size="sm" variant="secondary" onClick={onSendToSomeday} loading={somedayLoading}>언젠가로</Btn>
+          {planned && (
+            <>
+              <Btn size="sm" variant="secondary" onClick={onMoveToday} loading={todayLoading}>오늘로</Btn>
+              <Btn size="sm" variant="secondary" onClick={onSendToSomeday} loading={somedayLoading}>언젠가로</Btn>
+            </>
+          )}
+          {cancellable && (
+            <Btn size="sm" variant="danger-ghost" onClick={onCancel} loading={cancelLoading}>취소</Btn>
+          )}
         </div>
       )}
     </div>
