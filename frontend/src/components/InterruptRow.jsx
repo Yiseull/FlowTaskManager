@@ -10,6 +10,8 @@ const PRIORITY_META = {
 export default function InterruptRow({ interrupt, onConvert, onStartNow, onDismiss, loadingAction }) {
   const [hover, setHover] = useState(false);
   const meta = PRIORITY_META[interrupt.priority] || PRIORITY_META.LOW;
+  const compact = typeof window !== 'undefined' && window.innerWidth < 720;
+  const showActions = hover || compact || loadingAction;
 
   return (
     <div
@@ -61,7 +63,7 @@ export default function InterruptRow({ interrupt, onConvert, onStartNow, onDismi
           {formatRelative(interrupt.createdAt)}
         </div>
       </div>
-      {(hover || loadingAction) && (
+      {showActions && (
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, animation: 'fadeUp 0.12s ease' }}>
           <Btn size="sm" variant="secondary" onClick={onConvert} loading={loadingAction === 'plan'}>목록에 추가</Btn>
           <Btn size="sm" onClick={onStartNow} loading={loadingAction === 'start'}>지금 시작</Btn>
