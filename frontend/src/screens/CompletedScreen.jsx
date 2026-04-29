@@ -5,6 +5,10 @@ function formatCompletedTime(value) {
   return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 }
 
+function completedAt(task) {
+  return task.completed_at ?? task.completedAt ?? null;
+}
+
 export default function CompletedScreen({ tasks = [] }) {
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
 
@@ -111,7 +115,7 @@ export default function CompletedScreen({ tasks = [] }) {
                     fontSize: 13,
                     fontWeight: 800,
                   }}>
-                    {formatCompletedTime(task.completed_at) || '시각 없음'}
+                    {formatCompletedTime(completedAt(task)) || '시각 없음'}
                   </div>
                 </div>
               ))}

@@ -160,7 +160,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   });
 
   const convertInterruptMutation = useMutation({
-    mutationFn: ({ id, startImmediately }) => api.convertInterrupt(id, { start_immediately: startImmediately }),
+    mutationFn: ({ id, startImmediately }) => api.convertInterrupt(id, { startImmediately }),
     onSuccess: (_, vars) => {
       toast(vars.startImmediately ? 'interrupt를 바로 작업으로 전환했어요' : 'interrupt를 오늘 할 일로 옮겼어요', 'success');
       refresh();
@@ -295,9 +295,9 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
                       </svg>
                     </div>
                     <span style={{ fontSize: 16, fontWeight: 600, textDecoration: 'line-through', color: 'var(--c-muted)' }}>{task.title}</span>
-                    {task.completed_at && (
+                    {(task.completed_at ?? task.completedAt) && (
                       <span style={{ fontSize: 13, color: 'var(--c-muted)', marginLeft: 'auto' }}>
-                        {new Date(task.completed_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(task.completed_at ?? task.completedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                   </div>

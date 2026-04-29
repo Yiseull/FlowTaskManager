@@ -1,16 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import process from 'node:process'
+
+const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:8080'
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    globals: true,
+  },
   server: {
     port: 3000,
     proxy: {
-      '/tasks': 'http://localhost:8080',
-      '/sessions': 'http://localhost:8080',
-      '/day': 'http://localhost:8080',
-      '/settings': 'http://localhost:8080',
-      '/interrupts': 'http://localhost:8080',
+      '/tasks': apiTarget,
+      '/sessions': apiTarget,
+      '/day': apiTarget,
+      '/settings': apiTarget,
+      '/interrupts': apiTarget,
     },
   },
 })

@@ -17,11 +17,11 @@ export default function SettingsModal({ open, onClose }) {
   const queryClient = useQueryClient();
   const { data: settings } = useQuery({
     queryKey: ['settings'],
-    queryFn: () => apiOrMock(() => api.getSettings(), { daily_task_limit: 5 }),
+    queryFn: () => apiOrMock(() => api.getSettings(), { dailyTaskLimit: 5 }),
     enabled: open,
   });
   const [draftDailyTaskLimit, setDraftDailyTaskLimit] = useState(null);
-  const dailyTaskLimit = draftDailyTaskLimit ?? settings?.daily_task_limit ?? 5;
+  const dailyTaskLimit = draftDailyTaskLimit ?? settings?.dailyTaskLimit ?? settings?.daily_task_limit ?? 5;
 
   const mutation = useMutation({
     mutationFn: (payload) => apiOrMock(() => api.updateSettings(payload), payload),
@@ -69,7 +69,7 @@ export default function SettingsModal({ open, onClose }) {
 
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn variant="secondary" onClick={onClose} fullWidth>닫기</Btn>
-          <Btn onClick={() => mutation.mutate({ daily_task_limit: dailyTaskLimit })} loading={mutation.isPending} fullWidth>저장</Btn>
+          <Btn onClick={() => mutation.mutate({ dailyTaskLimit })} loading={mutation.isPending} fullWidth>저장</Btn>
         </div>
       </div>
     </Modal>

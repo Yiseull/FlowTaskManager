@@ -3,6 +3,10 @@ import CircleCheck from './CircleCheck';
 import FreshnessBadge from './FreshnessBadge';
 import Btn from './Btn';
 
+function carryOverCount(task) {
+  return task.carry_over_count ?? task.carryOverCount ?? 0;
+}
+
 export default function TaskRow({ task, status, onStart, onCancel, onUnblock, onSendToSomeday, loading, somedayLoading }) {
   const [hover, setHover] = useState(false);
   const compact = typeof window !== 'undefined' && window.innerWidth < 720;
@@ -31,7 +35,7 @@ export default function TaskRow({ task, status, onStart, onCancel, onUnblock, on
             {task.title}
           </span>
           {task.freshness && task.freshness !== 'NORMAL' && (
-            <FreshnessBadge freshness={task.freshness} count={task.carry_over_count} />
+            <FreshnessBadge freshness={task.freshness} count={carryOverCount(task)} />
           )}
         </div>
       </div>

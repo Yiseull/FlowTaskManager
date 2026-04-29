@@ -13,6 +13,14 @@ async function apiOrMock(fn, mockData) {
   }
 }
 
+function carryOverCount(task) {
+  return task.carry_over_count ?? task.carryOverCount ?? 0;
+}
+
+function summaryNumber(summary, snakeKey, camelKey) {
+  return summary?.[camelKey] ?? summary?.[snakeKey] ?? 0;
+}
+
 function RingChart({ value, max, label, sublabel, color }) {
   const r = 38, circ = 2 * Math.PI * r;
   const pct = max > 0 ? Math.min(value / max, 1) : 0;
@@ -74,10 +82,10 @@ export default function DayEndScreen({ summary, carryOverPending = [], onDayStar
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const carry_over = carryOverPending.filter(t => selected.has(t.id)).map(t => t.id);
+      const carryOver = carryOverPending.filter(t => selected.has(t.id)).map(t => t.id);
       const dismiss = carryOverPending.filter(t => !selected.has(t.id)).map(t => t.id);
-      if (carry_over.length || dismiss.length) {
-        await apiOrMock(() => api.startDay({ carry_over, dismiss }), {});
+      if (carryOver.length || dismiss.length) {
+        await apiOrMock(() => api.startDay({ carryOver, dismiss }), {});
       }
     },
     onSuccess: () => {
@@ -89,6 +97,10 @@ export default function DayEndScreen({ summary, carryOverPending = [], onDayStar
   });
 
   const s = summary || MOCK.summary;
+  const completedCount = summaryNumber(s, 'completed_count', 'completedCount');
+  const switchCount = summaryNumber(s, 'switch_count', 'switchCount');
+  const focusMinutes = summaryNumber(s, 'focus_minutes', 'focusMinutes');
+  const summaryCarryOverCount = summaryNumber(s, 'carry_over_count', 'carryOverCount');
   const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
   return (
@@ -99,19 +111,19 @@ export default function DayEndScreen({ summary, carryOverPending = [], onDayStar
             하루 마감
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>
-            {s.completed_count > 0 ? '수고했어요! 🎉' : '내일 더 잘 할 수 있어요'}
+            {completedCount > 0 ? '수고했어요! 🎉' : '내일 더 잘 할 수 있어요'}
           </h1>
           <p style={{ fontSize: 13, color: 'var(--c-muted)', marginTop: 6 }}>{dateStr}</p>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '24px 0', marginBottom: 8 }}>
-          <RingChart value={s.completed_count} max={Math.max(s.completed_count + carryOverPending.length, 5)} label="완료" sublabel="tasks" color="var(--c-success)" />
-          <RingChart value={s.switch_count} max={Math.max(s.switch_count, 10)} label="전환" sublabel="times" color="var(--c-warn)" />
-          <RingChart value={s.carry_over_count} max={Math.max(s.carry_over_count, 5)} label="이월" sublabel="tasks" color="var(--c-danger)" />
+          <RingChart value={completedCount} max={Math.max(completedCount + carryOverPending.length, 5)} label="완료" sublabel="tasks" color="var(--c-success)" />
+          <RingChart value={switchCount} max={Math.max(switchCount, 10)} label="전환" sublabel="times" color="var(--c-warn)" />
+          <RingChart value={summaryCarryOverCount} max={Math.max(summaryCarryOverCount, 5)} label="이월" sublabel="tasks" color="var(--c-danger)" />
         </div>
 
         <div style={{ background: 'var(--c-surface)', borderRadius: 14, padding: 20, marginBottom: 24, border: '1px solid var(--c-border)' }}>
-          <FocusBar minutes={s.focus_minutes} />
+          <FocusBar minutes={focusMinutes} />
         </div>
 
         {carryOverPending.length > 0 && (
@@ -141,8 +153,8 @@ export default function DayEndScreen({ summary, carryOverPending = [], onDayStar
                       {isSel && <span style={{ color: '#fff', fontSize: 10 }}>✓</span>}
                     </div>
                     <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{task.title}</span>
-                    {task.carry_over_count > 0 && (
-                      <FreshnessBadge freshness="WARNING" count={task.carry_over_count} />
+                    {carryOverCount(task) > 0 && (
+                      <FreshnessBadge freshness="WARNING" count={carryOverCount(task)} />
                     )}
                   </button>
                 );

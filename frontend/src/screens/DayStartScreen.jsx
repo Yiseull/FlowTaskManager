@@ -13,6 +13,10 @@ async function apiOrMock(fn, mockData) {
   }
 }
 
+function carryOverCount(task) {
+  return task.carry_over_count ?? task.carryOverCount ?? 0;
+}
+
 export default function DayStartScreen({ carryOverPending, onComplete }) {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState(() => new Set(carryOverPending.map(t => t.id)));
@@ -35,9 +39,9 @@ export default function DayStartScreen({ carryOverPending, onComplete }) {
   });
 
   function handleStart() {
-    const carry_over = carryOverPending.filter(t => selected.has(t.id)).map(t => t.id);
+    const carryOver = carryOverPending.filter(t => selected.has(t.id)).map(t => t.id);
     const dismiss = carryOverPending.filter(t => !selected.has(t.id)).map(t => t.id);
-    mutation.mutate({ carry_over, dismiss });
+    mutation.mutate({ carryOver, dismiss });
   }
 
   const carryCount = selected.size;
@@ -80,9 +84,9 @@ export default function DayStartScreen({ carryOverPending, onComplete }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{task.title}</div>
-                  {task.carry_over_count > 0 && (
+                  {carryOverCount(task) > 0 && (
                     <div style={{ marginTop: 4 }}>
-                      <FreshnessBadge freshness={task.carry_over_count >= 4 ? 'STALE' : 'WARNING'} count={task.carry_over_count} />
+                      <FreshnessBadge freshness={carryOverCount(task) >= 4 ? 'STALE' : 'WARNING'} count={carryOverCount(task)} />
                     </div>
                   )}
                 </div>

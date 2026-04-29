@@ -18,6 +18,10 @@ function formatLocalDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function carryOverCount(task) {
+  return task.carry_over_count ?? task.carryOverCount ?? 0;
+}
+
 export default function StaleModal({ tasks, onResolved }) {
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(null);
@@ -66,8 +70,8 @@ export default function StaleModal({ tasks, onResolved }) {
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{task.title}</div>
         <div style={{ fontSize: 13, color: 'var(--c-muted)', marginBottom: 20 }}>
-          {task.carry_over_count >= 4
-            ? `${task.carry_over_count}회 이월 — 반드시 처리해 주세요`
+          {carryOverCount(task) >= 4
+            ? `${carryOverCount(task)}회 이월 — 반드시 처리해 주세요`
             : '3일 이상 진행하지 않은 태스크예요'}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

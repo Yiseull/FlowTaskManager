@@ -35,7 +35,7 @@ function SwitchModalContent({ onClose, onConfirm, targetTask, activeTask }) {
     if (!reason) { toast('전환 사유를 선택해 주세요', 'error'); return; }
     setLoading(true);
     try {
-      await onConfirm({ switch_reason: reason, switch_note: note || undefined });
+      await onConfirm({ switchReason: reason, switchNote: note || undefined });
     } catch (e) {
       toast(e.message || '전환 중 오류 발생', 'error');
     } finally {
