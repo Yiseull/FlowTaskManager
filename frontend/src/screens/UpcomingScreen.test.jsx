@@ -51,6 +51,19 @@ describe('UpcomingScreen task movement', () => {
     });
   });
 
+  it('shows the daily limit message when moving a future task to today is rejected', async () => {
+    const error = new Error('daily limit');
+    error.code = 'DAILY_TASK_LIMIT';
+    vi.spyOn(api, 'rescheduleTask').mockRejectedValue(error);
+
+    const { user } = renderUpcomingWith([plannedFutureTask]);
+
+    await screen.findByText('다음 주 릴리즈 준비');
+    await user.click(screen.getByRole('button', { name: '오늘로' }));
+
+    expect(await screen.findByText('오늘 할 일 한도를 초과했어요')).toBeInTheDocument();
+  });
+
   it('moves a future planned task to someday', async () => {
     const sendTaskToSomeday = vi
       .spyOn(api, 'sendTaskToSomeday')

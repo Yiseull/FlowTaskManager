@@ -38,6 +38,18 @@ const activeTodayData = {
   carryOverPending: [],
 };
 
+const activeWithPlannedTodayData = {
+  ...activeTodayData,
+  planned: [
+    {
+      id: 'switch-target',
+      title: '전환 대상 작업',
+      carryOverCount: 0,
+      freshness: 'NORMAL',
+    },
+  ],
+};
+
 const pendingInterrupts = [
   {
     id: 'interrupt-task',
@@ -146,6 +158,26 @@ describe('TodayScreen task movement', () => {
 
     await waitFor(() => {
       expect(dismissInterrupt).toHaveBeenCalledWith('interrupt-task');
+    });
+  });
+
+  it('starts a planned task through the switch reason flow when another task is active', async () => {
+    const startTask = vi.spyOn(api, 'startTask').mockResolvedValue({ taskId: 'switch-target', sessionId: 'session-2' });
+
+    const { user } = renderToday(activeWithPlannedTodayData);
+
+    await screen.findByText('전환 대상 작업');
+    await user.click(screen.getByRole('button', { name: '시작' }));
+    expect(screen.getByText('태스크 전환')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '긴급' }));
+    await user.click(screen.getByRole('button', { name: '전환' }));
+
+    await waitFor(() => {
+      expect(startTask).toHaveBeenCalledWith('switch-target', {
+        switchReason: 'URGENT',
+        switchNote: undefined,
+      });
     });
   });
 });
