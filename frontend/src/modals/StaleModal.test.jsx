@@ -11,6 +11,20 @@ const staleTask = {
 };
 
 describe('StaleModal', () => {
+  it('starts a stale task immediately', async () => {
+    const startTask = vi.spyOn(api, 'startTask').mockResolvedValue({});
+    const onResolved = vi.fn();
+
+    const { user } = renderWithClient(<StaleModal tasks={[staleTask]} onResolved={onResolved} />);
+
+    await user.click(screen.getByRole('button', { name: '지금 시작' }));
+
+    await waitFor(() => {
+      expect(startTask).toHaveBeenCalledWith('stale-task');
+      expect(onResolved).toHaveBeenCalled();
+    });
+  });
+
   it('postpones a stale task to tomorrow with the backend scheduledDate payload', async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -23,6 +37,20 @@ describe('StaleModal', () => {
 
     await waitFor(() => {
       expect(rescheduleTask).toHaveBeenCalledWith('stale-task', { scheduledDate: formatLocalDate(tomorrow) });
+      expect(onResolved).toHaveBeenCalled();
+    });
+  });
+
+  it('cancels a stale task', async () => {
+    const cancelTask = vi.spyOn(api, 'cancelTask').mockResolvedValue({});
+    const onResolved = vi.fn();
+
+    const { user } = renderWithClient(<StaleModal tasks={[staleTask]} onResolved={onResolved} />);
+
+    await user.click(screen.getByRole('button', { name: '취소' }));
+
+    await waitFor(() => {
+      expect(cancelTask).toHaveBeenCalledWith('stale-task');
       expect(onResolved).toHaveBeenCalled();
     });
   });

@@ -120,4 +120,32 @@ describe('TodayScreen task movement', () => {
       expect(convertInterrupt).toHaveBeenCalledWith('interrupt-task', { startImmediately: false });
     });
   });
+
+  it('starts an interrupt immediately with backend camelCase startImmediately payload', async () => {
+    const convertInterrupt = vi
+      .spyOn(api, 'convertInterrupt')
+      .mockResolvedValue({ interruptId: 'interrupt-task', taskId: 'converted-task', taskStatus: 'IN_PROGRESS' });
+
+    const { user } = renderToday(activeTodayData, pendingInterrupts);
+
+    await screen.findByText('QA interrupt');
+    await user.click(screen.getByRole('button', { name: '지금 시작' }));
+
+    await waitFor(() => {
+      expect(convertInterrupt).toHaveBeenCalledWith('interrupt-task', { startImmediately: true });
+    });
+  });
+
+  it('dismisses an interrupt from the queue', async () => {
+    const dismissInterrupt = vi.spyOn(api, 'dismissInterrupt').mockResolvedValue({ id: 'interrupt-task', status: 'DISMISSED' });
+
+    const { user } = renderToday(activeTodayData, pendingInterrupts);
+
+    await screen.findByText('QA interrupt');
+    await user.click(screen.getByRole('button', { name: '닫기' }));
+
+    await waitFor(() => {
+      expect(dismissInterrupt).toHaveBeenCalledWith('interrupt-task');
+    });
+  });
 });
