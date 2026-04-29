@@ -19,8 +19,9 @@ export default function InterruptRow({ interrupt, onConvert, onStartNow, onDismi
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: compact ? 'flex-start' : 'center',
         gap: 12,
+        flexWrap: compact ? 'wrap' : 'nowrap',
         padding: '14px 0',
         minHeight: 68,
         borderBottom: '1px solid rgba(174,138,61,0.12)',
@@ -64,7 +65,16 @@ export default function InterruptRow({ interrupt, onConvert, onStartNow, onDismi
         </div>
       </div>
       {showActions && (
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0, animation: 'fadeUp 0.12s ease' }}>
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          justifyContent: compact ? 'flex-end' : 'flex-start',
+          width: compact ? '100%' : 'auto',
+          marginLeft: compact ? 32 : 0,
+          animation: 'fadeUp 0.12s ease',
+        }}>
           <Btn size="sm" variant="secondary" onClick={onConvert} loading={loadingAction === 'plan'}>목록에 추가</Btn>
           <Btn size="sm" onClick={onStartNow} loading={loadingAction === 'start'}>지금 시작</Btn>
           <Btn size="sm" variant="danger-ghost" onClick={onDismiss} loading={loadingAction === 'dismiss'}>닫기</Btn>
