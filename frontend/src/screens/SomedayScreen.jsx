@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, MOCK, shouldUseSomedayMockFallback } from '../api';
 import Btn from '../components/Btn';
+import ConfirmCancelModal from '../components/ConfirmCancelModal';
 import FreshnessBadge from '../components/FreshnessBadge';
 import Spinner from '../components/Spinner';
 import { toast } from '../components/toastStore';
@@ -75,6 +76,7 @@ const STATUS_COPY = {
 export default function SomedayScreen() {
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
   const queryClient = useQueryClient();
+  const [cancelTarget, setCancelTarget] = useState(null);
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['someday'],
     queryFn: () => apiOrMock(() => api.getSomeday(), MOCK.someday),
@@ -103,6 +105,7 @@ export default function SomedayScreen() {
   const cancelMutation = useMutation({
     mutationFn: (id) => api.cancelTask(id),
     onSuccess: () => {
+      setCancelTarget(null);
       queryClient.invalidateQueries({ queryKey: ['someday'] });
       toast('보관 작업을 취소했어요');
     },
@@ -204,7 +207,7 @@ export default function SomedayScreen() {
                   movingToday={moveTodayMutation.isPending && moveTodayMutation.variables === task.id}
                   cancelling={cancelMutation.isPending && cancelMutation.variables === task.id}
                   onMoveToday={() => moveTodayMutation.mutate(task.id)}
-                  onCancel={() => cancelMutation.mutate(task.id)}
+                  onCancel={() => setCancelTarget(task)}
                 />
               ))}
             </div>
@@ -217,6 +220,14 @@ export default function SomedayScreen() {
           )}
         </Panel>
       </div>
+
+      <ConfirmCancelModal
+        open={Boolean(cancelTarget)}
+        task={cancelTarget}
+        loading={cancelMutation.isPending}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget.id)}
+      />
     </div>
   );
 }

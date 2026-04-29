@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import FreshnessBadge from '../components/FreshnessBadge';
 import Btn from '../components/Btn';
 import { api, MOCK, shouldUseMockFallback } from '../api';
+import ConfirmCancelModal from '../components/ConfirmCancelModal';
 import { toast } from '../components/toastStore';
 
 async function apiOrMock(fn, mockData) {
@@ -48,6 +50,7 @@ export default function UpcomingScreen({
   onGoToday,
 }) {
   const queryClient = useQueryClient();
+  const [cancelTarget, setCancelTarget] = useState(null);
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
   const { data: upcomingData, isLoading: upcomingLoading, isError: upcomingError, error: upcomingErrorValue } = useQuery({
     queryKey: ['upcoming'],
@@ -87,6 +90,7 @@ export default function UpcomingScreen({
   const cancelMutation = useMutation({
     mutationFn: (id) => api.cancelTask(id),
     onSuccess: () => {
+      setCancelTarget(null);
       toast('예정 작업을 취소했어요');
       queryClient.invalidateQueries({ queryKey: ['upcoming'] });
     },
@@ -268,7 +272,7 @@ export default function UpcomingScreen({
                   last={index === futureTasks.length - 1}
                   onMoveToday={() => moveTodayMutation.mutate(task.id)}
                   onSendToSomeday={() => sendToSomedayMutation.mutate(task.id)}
-                  onCancel={() => cancelMutation.mutate(task.id)}
+                  onCancel={() => setCancelTarget(task)}
                   todayLoading={movingTodayId === task.id}
                   somedayLoading={sendingToSomedayId === task.id}
                   cancelLoading={cancellingId === task.id}
@@ -301,6 +305,14 @@ export default function UpcomingScreen({
           </section>
         )}
       </div>
+
+      <ConfirmCancelModal
+        open={Boolean(cancelTarget)}
+        task={cancelTarget}
+        loading={cancelMutation.isPending}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget.id)}
+      />
     </div>
   );
 }

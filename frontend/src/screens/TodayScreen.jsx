@@ -6,6 +6,7 @@ import TaskRow from '../components/TaskRow';
 import AddTaskRow from '../components/AddTaskRow';
 import AddInterruptRow from '../components/AddInterruptRow';
 import InterruptRow from '../components/InterruptRow';
+import ConfirmCancelModal from '../components/ConfirmCancelModal';
 import SwitchModal from '../modals/SwitchModal';
 import { toast } from '../components/toastStore';
 
@@ -29,6 +30,7 @@ function normalizeSession(session) {
 export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   const queryClient = useQueryClient();
   const [switchModal, setSwitchModal] = useState({ open: false, targetTask: null });
+  const [cancelTarget, setCancelTarget] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const intervalRef = useRef(null);
@@ -105,7 +107,11 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
 
   const cancelMutation = useMutation({
     mutationFn: (id) => api.cancelTask(id),
-    onSuccess: () => { toast('취소됐어요'); refresh(); },
+    onSuccess: () => {
+      toast('취소됐어요');
+      setCancelTarget(null);
+      refresh();
+    },
     onError: (e) => toast(e.message, 'error'),
   });
 
@@ -267,7 +273,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
                   status="PLANNED"
                   onStart={() => handleSwitchRequest(task)}
                   onSendToSomeday={() => sendToSomedayMutation.mutate(task.id)}
-                  onCancel={() => cancelMutation.mutate(task.id)}
+                  onCancel={() => setCancelTarget(task)}
                   loading={startingId === task.id}
                   somedayLoading={sendingToSomedayId === task.id}
                 />
@@ -363,7 +369,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
                   task={task}
                   status="BLOCKED"
                   onUnblock={() => unblockMutation.mutate(task.id)}
-                  onCancel={() => cancelMutation.mutate(task.id)}
+                  onCancel={() => setCancelTarget(task)}
                   loading={unblockingId === task.id}
                 />
               )) : (
@@ -388,6 +394,14 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
         onConfirm={handleSwitchConfirm}
         targetTask={switchModal.targetTask}
         activeTask={active}
+      />
+
+      <ConfirmCancelModal
+        open={Boolean(cancelTarget)}
+        task={cancelTarget}
+        loading={cancelMutation.isPending}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget.id)}
       />
     </>
   );
