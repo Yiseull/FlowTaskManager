@@ -7,6 +7,20 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activeNav, onNav, completedCount, pendingCount, onDayEnd, onSettings }) {
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
+  const iconButtonStyle = {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    border: '1px solid rgba(255,255,255,0.16)',
+    background: 'rgba(255,255,255,0.1)',
+    color: 'var(--sidebar-text)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    flexShrink: 0,
+  };
 
   return (
     <div style={{
@@ -16,21 +30,66 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
       flexDirection: 'column',
       flexShrink: 0,
       userSelect: 'none',
-      padding: compact ? '12px 12px 8px' : '18px 18px 20px',
+      padding: compact ? '10px 10px 9px' : '18px 18px 20px',
       borderRight: compact ? 'none' : '1px solid rgba(255,255,255,0.18)',
       borderBottom: compact ? '1px solid rgba(255,255,255,0.18)' : 'none',
+      gap: compact ? 9 : 0,
     }}>
-      <div style={{ padding: '10px 12px 8px', display: 'flex', gap: 8 }}>
-        {['#FF5F57', '#FEBC2E', '#28C840'].map((c, i) => (
-          <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: c }} />
-        ))}
+      <div style={{
+        padding: compact ? '2px 2px 0' : '10px 12px 8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: compact ? 'space-between' : 'flex-start',
+        gap: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            {['#FF5F57', '#FEBC2E', '#28C840'].map((c, i) => (
+              <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: c }} />
+            ))}
+          </div>
+          {compact && (
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sidebar-text)' }}>Flow</div>
+          )}
+        </div>
+
+        {compact && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              aria-label="하루 종료"
+              onClick={onDayEnd}
+              style={iconButtonStyle}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--sidebar-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            >
+              <SidebarIcon icon="stop" />
+            </button>
+            <button
+              aria-label="설정"
+              onClick={onSettings}
+              style={iconButtonStyle}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--sidebar-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            >
+              <SidebarIcon icon="settings" />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div style={{ padding: '12px 12px 20px' }}>
+      <div style={{ padding: '12px 12px 20px', display: compact ? 'none' : 'block' }}>
         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sidebar-text)', letterSpacing: '-0.04em' }}>Flow</div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 0 10px', flex: 1 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: compact ? 'row' : 'column',
+        flexWrap: compact ? 'wrap' : 'nowrap',
+        gap: compact ? 5 : 6,
+        padding: compact ? '0' : '0 0 10px',
+        flex: compact ? '0 0 auto' : 1,
+        overflowX: 'visible',
+      }}>
         {NAV_ITEMS.map(item => {
           const sel = item.id === activeNav;
           const badge = item.id === 'today' ? pendingCount : item.id === 'logbook' ? completedCount : null;
@@ -40,9 +99,12 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
               onClick={() => onNav(item.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '14px 16px', borderRadius: 18, border: '1px solid transparent',
+                justifyContent: compact ? 'center' : 'flex-start',
+                padding: compact ? '9px 6px' : '14px 16px', borderRadius: compact ? 16 : 18, border: '1px solid transparent',
                 background: sel ? 'var(--sidebar-sel)' : 'transparent',
-                cursor: 'pointer', width: '100%', textAlign: 'left',
+                cursor: 'pointer', width: compact ? 'auto' : '100%', textAlign: 'left',
+                minWidth: compact ? 72 : 'auto',
+                flex: compact ? '1 1 72px' : '0 0 auto',
                 fontFamily: 'inherit', transition: 'all 0.16s',
                 backdropFilter: sel ? 'blur(8px)' : 'none',
                 boxShadow: sel ? 'inset 0 1px 0 rgba(255,255,255,0.16)' : 'none',
@@ -51,9 +113,9 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
               onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
             >
               <span style={{
-                width: 26,
-                height: 26,
-                borderRadius: 13,
+                width: compact ? 22 : 26,
+                height: compact ? 22 : 26,
+                borderRadius: compact ? 11 : 13,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -62,7 +124,13 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
               }}>
                 <SidebarIcon icon={item.icon} />
               </span>
-              <span style={{ fontSize: 15, fontWeight: sel ? 700 : 600, color: 'var(--sidebar-text)', flex: 1 }}>{item.label}</span>
+              <span style={{
+                fontSize: compact ? 12.5 : 15,
+                fontWeight: sel ? 700 : 600,
+                color: 'var(--sidebar-text)',
+                flex: compact ? '0 1 auto' : 1,
+                whiteSpace: 'nowrap',
+              }}>{item.label}</span>
               {badge > 0 && (
                 <span style={{
                   fontSize: 12,
@@ -79,9 +147,9 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
           );
         })}
 
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '10px 8px 14px' }} />
+        {!compact && <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '10px 8px 14px' }} />}
 
-        <button
+        {!compact && <button
           onClick={onDayEnd}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
@@ -105,10 +173,10 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
             <SidebarIcon icon="stop" />
           </span>
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--sidebar-text)' }}>하루 종료</span>
-        </button>
+        </button>}
       </div>
 
-      <div style={{ padding: '12px 0 0' }}>
+      <div style={{ padding: '12px 0 0', display: compact ? 'none' : 'block' }}>
         <button
           onClick={onSettings}
           style={{
