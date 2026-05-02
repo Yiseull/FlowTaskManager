@@ -17,7 +17,7 @@ export default function TaskRow({ task, status, onStart, onCancel, onUnblock, on
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: compact ? 'flex-start' : 'center', gap: 12,
         flexWrap: compact ? 'wrap' : 'nowrap',
         padding: '16px 0', minHeight: 68, borderRadius: 8,
         background: hover ? 'var(--c-hover)' : 'transparent',
@@ -26,11 +26,19 @@ export default function TaskRow({ task, status, onStart, onCancel, onUnblock, on
       }}
     >
       <CircleCheck blocked={status === 'BLOCKED'} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{
+        flex: compact ? '1 1 calc(100% - 44px)' : 1,
+        minWidth: 0,
+        paddingTop: compact ? 2 : 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: compact ? 'flex-start' : 'center', gap: 8, flexWrap: compact ? 'wrap' : 'nowrap' }}>
           <span style={{
             fontSize: 17, fontWeight: 600, color: status === 'BLOCKED' ? 'var(--c-muted)' : 'var(--c-text)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            lineHeight: 1.35,
+            whiteSpace: compact ? 'normal' : 'nowrap',
+            overflow: compact ? 'visible' : 'hidden',
+            textOverflow: compact ? 'clip' : 'ellipsis',
+            overflowWrap: 'anywhere',
           }}>
             {task.title}
           </span>
@@ -45,7 +53,7 @@ export default function TaskRow({ task, status, onStart, onCancel, onUnblock, on
           gap: 8,
           flexShrink: 0,
           flexWrap: 'wrap',
-          justifyContent: compact ? 'flex-end' : 'flex-start',
+          justifyContent: 'flex-start',
           marginLeft: compact ? 44 : 0,
           width: compact ? 'calc(100% - 44px)' : 'auto',
           animation: 'fadeUp 0.1s ease',
