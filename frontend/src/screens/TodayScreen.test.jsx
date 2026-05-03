@@ -69,7 +69,22 @@ function renderToday(data = todayData, interrupts = []) {
     elapsedSeconds: 0,
   });
   vi.spyOn(api, 'getInterrupts').mockResolvedValue(interrupts);
+  vi.spyOn(api, 'getDaySummary').mockResolvedValue({
+    date: '2026-05-03',
+    completedCount: 0,
+    switchCount: 7,
+    focusMinutes: 12,
+    carryOverCount: 0,
+  });
   return renderWithClient(<TodayScreen onDayEnd={vi.fn()} onOpenSettings={vi.fn()} />);
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise(res => {
+    resolve = res;
+  });
+  return { promise, resolve };
 }
 
 describe('TodayScreen task movement', () => {
@@ -159,6 +174,28 @@ describe('TodayScreen task movement', () => {
     await waitFor(() => {
       expect(dismissInterrupt).toHaveBeenCalledWith('interrupt-task');
     });
+  });
+
+  it('creates one interrupt when enter is pressed repeatedly while saving', async () => {
+    const pendingCreate = deferred();
+    const createInterrupt = vi.spyOn(api, 'createInterrupt').mockReturnValue(pendingCreate.promise);
+
+    const { user } = renderToday(activeTodayData);
+
+    await user.click(await screen.findByText('interrupt 남기기...'));
+    await user.type(screen.getByPlaceholderText('생긴 interrupt를 짧게 적어두기'), '중복 방지 확인');
+    await user.keyboard('{Enter}{Enter}');
+
+    expect(createInterrupt).toHaveBeenCalledTimes(1);
+    expect(createInterrupt).toHaveBeenCalledWith({ title: '중복 방지 확인', priority: 'LOW' });
+
+    pendingCreate.resolve({ id: 'new-interrupt', title: '중복 방지 확인', priority: 'LOW', status: 'PENDING' });
+  });
+
+  it('shows the switch count from the day summary in focus analytics', async () => {
+    renderToday(activeTodayData);
+
+    expect(await screen.findByText('7회')).toBeInTheDocument();
   });
 
   it('starts a planned task through the switch reason flow when another task is active', async () => {

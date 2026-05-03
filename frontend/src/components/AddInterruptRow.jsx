@@ -11,14 +11,21 @@ export default function AddInterruptRow({ onAdd }) {
   const [focused, setFocused] = useState(false);
   const [value, setValue] = useState('');
   const [priority, setPriority] = useState('LOW');
+  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
 
   async function submit() {
-    if (!value.trim()) return;
-    await onAdd({ title: value.trim(), priority });
-    setValue('');
-    setPriority('LOW');
-    setFocused(false);
+    const title = value.trim();
+    if (!title || submitting) return;
+    setSubmitting(true);
+    try {
+      await onAdd({ title, priority });
+      setValue('');
+      setPriority('LOW');
+      setFocused(false);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -60,7 +67,10 @@ export default function AddInterruptRow({ onAdd }) {
             value={value}
             onChange={e => setValue(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'Enter') submit();
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
               if (e.key === 'Escape') {
                 setFocused(false);
                 setValue('');
@@ -89,6 +99,7 @@ export default function AddInterruptRow({ onAdd }) {
           <select
             value={priority}
             onChange={e => setPriority(e.target.value)}
+            disabled={submitting}
             style={{
               border: '1px solid var(--c-warn-border)',
               borderRadius: 12,
@@ -101,7 +112,7 @@ export default function AddInterruptRow({ onAdd }) {
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
-          {value && <Btn size="sm" onClick={submit}>기록</Btn>}
+          {value && <Btn size="sm" onClick={submit} loading={submitting}>기록</Btn>}
         </>
       ) : (
         <span

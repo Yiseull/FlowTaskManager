@@ -27,6 +27,10 @@ function normalizeSession(session) {
   };
 }
 
+function summaryNumber(summary, snakeKey, camelKey, fallback = 0) {
+  return summary?.[camelKey] ?? summary?.[snakeKey] ?? fallback;
+}
+
 export default function TodayScreen({ onDayEnd, onOpenSettings }) {
   const queryClient = useQueryClient();
   const [switchModal, setSwitchModal] = useState({ open: false, targetTask: null });
@@ -56,6 +60,12 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
     retry: false,
   });
 
+  const { data: daySummary } = useQuery({
+    queryKey: ['day-summary'],
+    queryFn: () => apiOrMock(() => api.getDaySummary(), MOCK.summary),
+    retry: false,
+  });
+
   // Timer
   useEffect(() => {
     if (session?.startedAtValue) {
@@ -80,6 +90,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
     queryClient.invalidateQueries({ queryKey: ['today'] });
     queryClient.invalidateQueries({ queryKey: ['session'] });
     queryClient.invalidateQueries({ queryKey: ['interrupts'] });
+    queryClient.invalidateQueries({ queryKey: ['day-summary'] });
   }
 
   function refreshAfterSomedayMove() {
@@ -381,7 +392,7 @@ export default function TodayScreen({ onDayEnd, onOpenSettings }) {
             </Panel>
 
             <Panel title="집중 분석" action={<span style={{ fontSize: 15, color: 'var(--c-muted)', fontWeight: 600 }}>오늘</span>}>
-              <AnalyticsCard elapsed={displayElapsed} active={Boolean(active)} />
+              <AnalyticsCard elapsed={displayElapsed} active={Boolean(active)} summary={daySummary} />
             </Panel>
           </div>
           )}
@@ -538,10 +549,10 @@ function TopButtonIcon({ icon }) {
   );
 }
 
-function AnalyticsCard({ elapsed, active }) {
+function AnalyticsCard({ elapsed, active, summary }) {
   const focusMinutes = Math.max(192, Math.round(elapsed / 60));
   const distractionMinutes = 41;
-  const switchCount = 2;
+  const switchCount = summaryNumber(summary, 'switch_count', 'switchCount', 0);
   const total = focusMinutes + distractionMinutes;
   const focusPct = total > 0 ? Math.round((focusMinutes / total) * 100) : 0;
   const circumference = 2 * Math.PI * 68;
