@@ -112,6 +112,12 @@ Updated: 2026-05-05
   - `./gradlew test` -> `:backend:test`
 - Module split and multi-device sync planning lives at:
   - `docs/plans/2026-05-05-module-split-and-sync.md`
+- Remote shared PostgreSQL setup lives at:
+  - `docs/setup-remote-postgres.md`
+- Backend datasource can now be configured with:
+  - `SPRING_DATASOURCE_URL`
+  - `SPRING_DATASOURCE_USERNAME`
+  - `SPRING_DATASOURCE_PASSWORD`
 
 ## Files Left Uncommitted on Purpose
 - `.claude/settings.local.json`
@@ -126,12 +132,13 @@ These are local/tooling changes, not app feature work.
 - Do not include `Co-Authored-By`.
 
 ## Recommended Next Feature
-- Decide and implement the multi-device deployment/sync path.
+- Try the Neon Free Postgres shared DB setup on a second laptop.
 
 Why this next:
 - The repo structure now separates frontend/backend modules.
-- To use the app from another laptop with shared state, the next decision is where the central backend/PostgreSQL will live.
-- Recommended first implementation path: single central backend + PostgreSQL + minimal auth before exposing it outside localhost.
+- Backend datasource config now supports environment variable overrides.
+- The recommended v1 path is local backend/frontend on each laptop connected to one shared Neon Postgres database.
+- Authentication remains deferred because the backend is not exposed to the internet in this setup.
 
 ## Validation Baseline
 - `./gradlew test`
@@ -146,6 +153,7 @@ Why this next:
 - `cd frontend && npm run test` — 8 files, 24 tests passed
 - `cd frontend && npm run lint`
 - `cd frontend && npm run build`
+- `./gradlew :backend:bootRun --args='--server.port=18080'` — local fallback datasource boot reached Tomcat started; process was then manually terminated
 
 ## If You Start Here Next
 1. Read this file first.

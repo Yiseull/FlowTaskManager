@@ -3,9 +3,9 @@ spring:
     deserialization:
       fail-on-null-for-primitives: false
   datasource:
-    url: jdbc:postgresql://localhost:5432/flowtaskmanager
-    username: postgres
-    password: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/flowtaskmanager}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update

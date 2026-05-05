@@ -48,6 +48,14 @@ docker run -d \
 
 서버가 `http://localhost:8080`에서 실행됩니다.
 
+원격 PostgreSQL(예: Neon)을 공유 DB로 쓰려면 실행 전에 datasource 환경변수를 설정합니다.
+
+```bash
+export SPRING_DATASOURCE_URL='jdbc:postgresql://<neon-host>/<db-name>?sslmode=require'
+export SPRING_DATASOURCE_USERNAME='<neon-user>'
+export SPRING_DATASOURCE_PASSWORD='<neon-password>'
+```
+
 **3. 프론트엔드 실행**
 
 ```bash
@@ -119,4 +127,5 @@ FlowTaskManager/
 - `flow-task-manager-design.md` — 전체 설계 문서 (아키텍처, ERD, 상태 머신, Phase 계획)
 - `flow-task-manager-frontend.md` — 프론트엔드 전용 설계서
 - `docs/plans/2026-05-05-module-split-and-sync.md` — 모듈 분리와 다중 기기 사용 계획
+- `docs/setup-remote-postgres.md` — Neon 등 원격 PostgreSQL 공유 DB 설정
 - `openapi.yaml` — OpenAPI 3.1 명세

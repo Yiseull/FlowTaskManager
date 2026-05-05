@@ -51,6 +51,13 @@ cd frontend && npm run test
 
 ## 2. 다른 노트북에서 실제 사용하기
 
+### v1 구현 상태
+
+- Backend datasource 환경변수 override 추가 완료.
+- Neon Free Postgres를 공유 DB로 쓰는 설정 문서 추가 완료: `docs/setup-remote-postgres.md`
+- 각 노트북은 backend/frontend를 로컬 실행하고 같은 Neon DB에 접속한다.
+- 백엔드를 외부 공개하지 않으므로 인증/CORS 추가는 다음 단계로 보류한다.
+
 ### 문제 정의
 
 현재 앱은 로컬 PostgreSQL을 기준으로 동작한다. 다른 노트북에서도 같은 작업 데이터를 보려면 중앙 데이터 저장소 또는 동기화 계층이 필요하다.
