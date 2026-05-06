@@ -37,13 +37,8 @@ docker run -d \
 **2. 서버 실행**
 
 ```bash
+cd backend
 ./gradlew bootRun
-```
-
-또는 백엔드 모듈을 직접 지정할 수 있습니다.
-
-```bash
-./gradlew :backend:bootRun
 ```
 
 서버가 `http://localhost:8080`에서 실행됩니다.
@@ -69,8 +64,7 @@ npm run dev
 ### 테스트
 
 ```bash
-./gradlew test
-./gradlew :backend:test
+cd backend && ./gradlew test
 cd frontend && npm run test
 ```
 
@@ -111,15 +105,16 @@ API 명세는 프로젝트 루트의 `openapi.yaml`을 참고하세요.
 ```
 FlowTaskManager/
 ├── backend/
+│   ├── build.gradle
+│   ├── settings.gradle
+│   ├── gradlew
 │   └── src/main/java/org/example/flowtaskmanager/
 │       ├── api/      # REST controllers and request/response records
 │       ├── domain/   # Task, Session, Day, Settings, Interrupt domain logic
 │       └── global/   # Exception handling and API response wrapper
 ├── frontend/
 │   └── src/          # React UI
-├── docs/
-├── gradlew
-└── settings.gradle
+└── docs/
 ```
 
 ## 설계 문서
