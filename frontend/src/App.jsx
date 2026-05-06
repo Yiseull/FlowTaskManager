@@ -54,6 +54,7 @@ export default function App() {
     onSuccess: (sum) => {
       setSummary(sum);
       setScreen('day-end');
+      setActiveNav('day-end');
     },
     onError: (e) => toast(e.message || '하루 종료 중 오류', 'error'),
   });
@@ -133,8 +134,12 @@ export default function App() {
             <DayEndScreen
               summary={summary}
               carryOverPending={todayData?.planned || []}
-              onDayStart={() => { queryClient.invalidateQueries({ queryKey: ['today'] }); setScreen('today'); }}
-              onBack={() => setScreen('today')}
+              onDayStart={() => {
+                queryClient.invalidateQueries({ queryKey: ['today'] });
+                setScreen('today');
+                setActiveNav('today');
+              }}
+              onBack={() => { setScreen('today'); setActiveNav('today'); }}
             />
           ) : effectiveScreen === 'completed' ? (
             <CompletedScreen tasks={todayData?.completed || []} />

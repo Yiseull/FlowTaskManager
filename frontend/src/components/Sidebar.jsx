@@ -7,6 +7,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activeNav, onNav, completedCount, pendingCount, onDayEnd, onSettings }) {
   const compact = typeof window !== 'undefined' && window.innerWidth < 980;
+  const dayEndSel = activeNav === 'day-end';
   const iconButtonStyle = {
     width: 38,
     height: 38,
@@ -20,6 +21,11 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
     cursor: 'pointer',
     fontFamily: 'inherit',
     flexShrink: 0,
+  };
+  const dayEndIconButtonStyle = {
+    ...iconButtonStyle,
+    background: dayEndSel ? 'var(--sidebar-sel)' : iconButtonStyle.background,
+    boxShadow: dayEndSel ? 'inset 0 1px 0 rgba(255,255,255,0.16)' : 'none',
   };
 
   return (
@@ -58,9 +64,9 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
             <button
               aria-label="하루 종료"
               onClick={onDayEnd}
-              style={iconButtonStyle}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--sidebar-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              style={dayEndIconButtonStyle}
+              onMouseEnter={e => { if (!dayEndSel) e.currentTarget.style.background = 'var(--sidebar-hover)'; }}
+              onMouseLeave={e => { if (!dayEndSel) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
             >
               <SidebarIcon icon="stop" />
             </button>
@@ -153,12 +159,16 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
           onClick={onDayEnd}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            padding: '14px 16px', borderRadius: 18, border: 'none',
-            background: 'transparent', cursor: 'pointer', width: '100%',
+            padding: '14px 16px', borderRadius: 18, border: '1px solid transparent',
+            background: dayEndSel ? 'var(--sidebar-sel)' : 'transparent',
+            cursor: 'pointer', width: '100%',
             textAlign: 'left', fontFamily: 'inherit',
+            transition: 'all 0.16s',
+            backdropFilter: dayEndSel ? 'blur(8px)' : 'none',
+            boxShadow: dayEndSel ? 'inset 0 1px 0 rgba(255,255,255,0.16)' : 'none',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--sidebar-hover)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          onMouseEnter={e => { if (!dayEndSel) e.currentTarget.style.background = 'var(--sidebar-hover)'; }}
+          onMouseLeave={e => { if (!dayEndSel) e.currentTarget.style.background = 'transparent'; }}
         >
           <span style={{
             width: 26,
@@ -168,11 +178,11 @@ export default function Sidebar({ activeNav, onNav, completedCount, pendingCount
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--sidebar-text)',
-            background: 'rgba(255,255,255,0.08)',
+            background: dayEndSel ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
           }}>
             <SidebarIcon icon="stop" />
           </span>
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--sidebar-text)' }}>하루 종료</span>
+          <span style={{ fontSize: 15, fontWeight: dayEndSel ? 700 : 600, color: 'var(--sidebar-text)' }}>하루 종료</span>
         </button>}
       </div>
 
