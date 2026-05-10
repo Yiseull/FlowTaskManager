@@ -1,5 +1,9 @@
+// 운영(Vercel) 빌드에서는 VITE_API_BASE에 백엔드 절대 URL을 넣어 주입.
+// 비어 있으면 dev 모드의 vite proxy(상대 경로) 흐름을 그대로 사용.
+const API_BASE = (import.meta.env?.VITE_API_BASE || '').replace(/\/+$/, '');
+
 async function apiFetch(path, options = {}) {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });

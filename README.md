@@ -100,6 +100,54 @@ cd frontend && npm run test
 
 백엔드 테스트는 DB 없이 H2 인메모리로 실행됩니다.
 
+## 배포
+
+IDE를 켜지 않고도 항상 접근 가능한 환경을 만들기 위해 무료 호스팅 조합을 사용합니다.
+
+| 레이어 | 호스팅 | 무료 한도 / 특이사항 |
+|------|--------|----------------------|
+| Frontend | Vercel | 사실상 무제한 (개인), Vite 자동 인식 |
+| Backend  | Render Free | 750h/월, 15분 무사용 시 sleep → 첫 요청 30~60초 콜드 스타트 |
+| DB       | Neon Free | 0.5GB, 5분 무사용 시 일시정지(자동 재시작) |
+
+### 백엔드 (Render)
+
+1. [Render](https://render.com) → **New → Web Service** → GitHub 저장소 연결
+2. 다음 값으로 설정
+   - **Root Directory**: `backend`
+   - **Runtime**: `Docker`
+   - **Dockerfile Path**: `Dockerfile`
+   - **Plan**: Free
+3. **Environment** 탭에서 다음 변수 등록 (값은 절대 커밋 금지)
+   ```
+   SPRING_DATASOURCE_URL=jdbc:postgresql://<neon-host>/<db-name>?sslmode=require
+   SPRING_DATASOURCE_USERNAME=<neon-user>
+   SPRING_DATASOURCE_PASSWORD=<neon-password>
+   APP_CORS_ALLOWED_ORIGINS=https://<your-vercel-app>.vercel.app
+   ```
+4. 배포 후 콘솔 로그에서 `Tomcat started on port ...` 확인
+5. `https://<render-app>.onrender.com/tasks/today`로 직접 호출해 200 응답 확인
+
+> Render는 컨테이너 포트를 환경변수 `PORT`로 주입하며, 백엔드는 [application.yml](backend/src/main/resources/application.yml)의 `server.port: ${PORT:8080}`으로 자동 적용됩니다.
+
+### 프론트엔드 (Vercel)
+
+1. [Vercel](https://vercel.com) → **New Project** → GitHub 저장소 연결
+2. 다음 값으로 설정
+   - **Root Directory**: `frontend`
+   - **Framework Preset**: Vite (자동 감지)
+3. **Environment Variables**에 다음 등록
+   ```
+   VITE_API_BASE=https://<render-app>.onrender.com
+   ```
+4. 배포 후 발급된 Vercel 도메인을 백엔드 `APP_CORS_ALLOWED_ORIGINS`에 추가하고 백엔드 재배포
+
+### 주의사항
+
+- **콜드 스타트**: Render Free는 15분 무사용 시 sleep, Neon Free는 5분 무사용 시 일시정지. 합쳐서 첫 진입 시 30초~1분 정도 지연이 있을 수 있습니다.
+- **CORS**: 백엔드는 `APP_CORS_ALLOWED_ORIGINS`(콤마 구분)에 등록된 origin만 허용합니다. 로컬 개발용 기본값은 `http://localhost:3000,http://localhost:5173`입니다.
+- **비밀번호**: 모든 자격증명은 호스팅 콘솔의 환경변수로만 관리하세요. README나 `.env`에 실값을 적어 커밋하지 마세요. `.env.example`은 키 형식 참고용입니다.
+
 ## API
 
 API 명세는 프로젝트 루트의 `openapi.yaml`을 참고하세요.
@@ -138,11 +186,14 @@ FlowTaskManager/
 │   ├── build.gradle
 │   ├── settings.gradle
 │   ├── gradlew
+│   ├── Dockerfile          # Render 배포용
 │   └── src/main/java/org/example/flowtaskmanager/
 │       ├── api/      # REST controllers and request/response records
 │       ├── domain/   # Task, Session, Day, Settings, Interrupt domain logic
-│       └── global/   # Exception handling and API response wrapper
+│       └── global/   # Exception handling, API response wrapper, CORS 설정
 ├── frontend/
+│   ├── vercel.json         # Vercel SPA rewrite 설정
+│   ├── .env.example        # VITE_API_BASE 등 환경변수 템플릿
 │   └── src/          # React UI
 └── docs/
 ```
