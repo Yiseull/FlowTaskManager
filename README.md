@@ -18,11 +18,40 @@
 ### 사전 요구사항
 
 - Java 26+
-- Docker
+- Node.js 20+ (npm 포함)
+- Docker (로컬 PostgreSQL을 띄우는 경우)
+
+설치 여부는 다음으로 확인할 수 있습니다.
+
+```bash
+java -version    # 26+
+node -v          # v20 이상
+npm -v
+docker -v
+```
+
+### 설치
+
+**1. 저장소 클론**
+
+```bash
+git clone https://github.com/Yiseull/FlowTaskManager.git
+cd FlowTaskManager
+```
+
+**2. 프론트엔드 의존성 설치**
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+백엔드는 Gradle Wrapper가 첫 실행 시 의존성을 자동으로 받아오므로 별도 설치 단계가 필요 없습니다.
 
 ### 실행
 
-**1. DB 실행**
+**1. DB 실행 (로컬 PostgreSQL을 쓸 때)**
 
 ```bash
 docker run -d \
@@ -34,7 +63,9 @@ docker run -d \
   postgres:17
 ```
 
-**2. 서버 실행**
+원격 PostgreSQL(예: Neon)을 공유 DB로 쓰려면 이 단계를 건너뛰고 다음 단계에서 환경변수를 지정합니다. 자세한 절차는 [docs/setup-remote-postgres.md](docs/setup-remote-postgres.md)를 참고하세요.
+
+**2. 백엔드 실행**
 
 ```bash
 cd backend
@@ -43,7 +74,7 @@ cd backend
 
 서버가 `http://localhost:8080`에서 실행됩니다.
 
-원격 PostgreSQL(예: Neon)을 공유 DB로 쓰려면 실행 전에 datasource 환경변수를 설정합니다.
+원격 PostgreSQL을 쓰는 경우, 실행 전에 다음 환경변수를 설정합니다.
 
 ```bash
 export SPRING_DATASOURCE_URL='jdbc:postgresql://<neon-host>/<db-name>?sslmode=require'
@@ -55,7 +86,6 @@ export SPRING_DATASOURCE_PASSWORD='<neon-password>'
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
